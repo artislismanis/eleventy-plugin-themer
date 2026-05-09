@@ -20,7 +20,9 @@ export default {
       .replace(/</g, '\\x3c')
       .replace(/>/g, '\\x3e')
       .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r');
+      .replace(/\r/g, '\\r')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
   },
   safeUrl: (url) => _safeUrl(url),
 

@@ -15,96 +15,76 @@ import {
 import { logger } from '@eleventy-plugin-themer/core/logger';
 
 /**
- * Get feature paths for Vite aliases/serving
+ * @internal Get feature paths for Vite aliases/serving.
  *
- * Returns a Map of feature name to file path, preferring auto-init variants.
- * Used by theme-config.mjs for aliases and feature-serve.mjs for dev serving.
+ * Used inside build-vite by `theme-config.mjs` and `feature-serve.mjs`. Exported
+ * for adapter authors building custom Vite integrations on top of build-vite,
+ * but not part of the documented public API surface — signature may change
+ * without a major version bump.
  *
- * This is a thin wrapper around core's getAvailableFeatures() that transforms
- * the output into the format needed by Vite configuration.
+ * The caller must have already discovered features via `getAvailableFeatures()`
+ * and pass the resulting Map — this avoids redundant filesystem scans during
+ * plugin init.
  *
- * @param {string} projectRoot - Project root path
- * @param {Object} themeMetadata - Theme metadata from theme.json
- * @returns {Map<string, string>} Map of feature name to absolute file path
+ * @param {Map<string, {path: string}>} discoveredFeatures - Required. Output of `getAvailableFeatures()`.
+ * @returns {Map<string, string>} Map of feature name to absolute file path.
  */
-export function getFeaturePathsForBuild(projectRoot, themeMetadata, discoveredFeatures) {
-  const featurePaths = new Map();
-
-  // Use pre-discovered features if provided, otherwise discover
-  if (!discoveredFeatures) {
-    logger.warn('discoveredFeatures not provided — calling getAvailableFeatures() redundantly');
+export function getFeaturePathsForBuild(discoveredFeatures) {
+  if (!(discoveredFeatures instanceof Map)) {
+    throw new TypeError(
+      'getFeaturePathsForBuild: discoveredFeatures (Map) is required. ' +
+        'Call getAvailableFeatures() once during plugin init and pass the result.',
+    );
   }
-  const features = discoveredFeatures || getAvailableFeatures(projectRoot, themeMetadata);
-
-  features.forEach((info, name) => {
+  const featurePaths = new Map();
+  discoveredFeatures.forEach((info, name) => {
     featurePaths.set(name, info.path);
   });
-
   return featurePaths;
 }
 
 /**
- * Get Vite entry points for all features
+ * Get Vite entry points for all features.
  *
- * Returns entry points for:
- * - main.js (global entry - always included)
- * - All available features (theme + user, with user overrides taking precedence)
+ * Returns entry points for `main.js` plus all available features (theme + user,
+ * with user overrides taking precedence). Core handles cascade logic via
+ * `themeMetadata`.
  *
- * Core package handles all cascade logic internally via themeMetadata.
- *
- * @param {string} projectRoot - Project root path
- * @param {Object} themeMetadata - Theme metadata object from theme.json
- * @param {Object} [overridePaths] - Optional override paths (only for edge cases)
- * @returns {Object} Entry points object for Vite build.rollupOptions.input
+ * @param {string} projectRoot - Project root path.
+ * @param {Object} themeMetadata - Theme metadata object from `theme.json`.
+ * @param {Object} [opts]
+ * @param {Object} [opts.resolvedOverridePaths] - Pre-resolved override paths.
+ * @param {Map} [opts.discoveredFeatures] - Pre-discovered features. If omitted,
+ *   `getAvailableFeatures()` runs once internally.
+ * @returns {Object} Entry points object for Vite `build.rollupOptions.input`.
  *
  * @example
- * // In eleventy.config.mjs
  * import { getFeatureEntries } from '@eleventy-plugin-themer/build-vite';
  * import { metadata } from '@eleventy-plugin-themer/theme-base';
  *
- * const viteOptions = {
- *   build: {
- *     rollupOptions: {
- *       input: getFeatureEntries(__dirname, metadata),
- *     },
- *   },
- * };
+ * const input = getFeatureEntries(__dirname, metadata);
  */
-export function getFeatureEntries(
-  projectRoot,
-  themeMetadata,
-  resolvedOverridePaths,
-  discoveredFeatures,
-) {
-  // Get the main entry script path from theme metadata or fallback to default
+export function getFeatureEntries(projectRoot, themeMetadata, opts = {}) {
+  const { resolvedOverridePaths, discoveredFeatures } = opts;
   const mainScriptEntry = themeMetadata.assets?.scripts?.entry || DEFAULT_ASSET_ENTRIES.scripts;
 
-  // Resolve the main entry point using the cascade
   const mainScript = resolveResource({
     projectRoot,
     themeName: themeMetadata.name,
     resolvedOverridePaths,
     resourceType: 'scripts',
-    filename: path.basename(mainScriptEntry), // e.g., 'main.js'
+    filename: path.basename(mainScriptEntry),
     throwOnMissing: true,
   });
 
   const entries = {
-    // Main entry point (always included)
     main: mainScript.path,
   };
 
-  // Use pre-discovered features if provided, otherwise discover
-  if (!discoveredFeatures) {
-    logger.warn('discoveredFeatures not provided — calling getAvailableFeatures() redundantly');
-  }
   const features =
     discoveredFeatures || getAvailableFeatures(projectRoot, themeMetadata, resolvedOverridePaths);
 
-  // Add each feature as an entry point with /name.js pattern
-  // This ensures Vite bundles them for production builds
   features.forEach((feature) => {
-    // Entry key format: /code-highlighting.js (matches HTML <script src="...">)
     const entryKey = `/${feature.name}.js`;
     entries[entryKey] = feature.path;
   });

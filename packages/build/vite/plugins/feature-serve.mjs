@@ -12,19 +12,14 @@ import { getFeaturePathsForBuild } from '../utils/features.mjs';
 
 /**
  * @param {Object} options - Plugin options
- * @param {string} options.projectRoot - Project root path
- * @param {Object} options.themeMetadata - Theme metadata from theme.json
+ * @param {Map<string, {path: string}>} options.discoveredFeatures - Pre-discovered features
+ *   from `getAvailableFeatures()`. Required.
  * @returns {Object} Vite plugin
  */
-export function featureServePlugin(options = {}) {
-  const { projectRoot, themeMetadata, discoveredFeatures } = options;
-
-  if (!projectRoot || !themeMetadata) {
-    throw new Error('featureServePlugin requires projectRoot and themeMetadata');
-  }
-
-  // Use pre-discovered features if provided, otherwise discover
-  const featurePaths = getFeaturePathsForBuild(projectRoot, themeMetadata, discoveredFeatures);
+export function featureServePlugin({ discoveredFeatures } = {}) {
+  // getFeaturePathsForBuild throws TypeError if discoveredFeatures is missing —
+  // surfacing the same contract violation here would just duplicate that.
+  const featurePaths = getFeaturePathsForBuild(discoveredFeatures);
 
   return {
     name: 'feature-serve',

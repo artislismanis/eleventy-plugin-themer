@@ -1,0 +1,154 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../lib/cascade/features.mjs', () => ({
+  getAvailableFeatures: vi.fn(),
+}));
+
+import { getAvailableFeatures } from '../lib/cascade/features.mjs';
+import { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from '../lib/schemas.mjs';
+
+describe('schemas.mjs', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('themeConfigSchema', () => {
+    const metadata = {
+      config: {
+        analytics: { id: 'UA-1' },
+        codeHighlighting: { prismTheme: 'prism-tomorrow' },
+      },
+    };
+
+    it('accepts user config with known top-level keys', () => {
+      const schema = themeConfigSchema(metadata);
+      const result = schema.safeParse({
+        analytics: { id: 'UA-2' },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects unknown top-level keys (strict)', () => {
+      const schema = themeConfigSchema(metadata);
+      const result = schema.safeParse({ analytisc: { id: 'typo' } });
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].code).toBe('unrecognized_keys');
+    });
+
+    it('allows arbitrary nested shapes (inner unconstrained)', () => {
+      const schema = themeConfigSchema(metadata);
+      const result = schema.safeParse({
+        analytics: { anything: { goes: [1, 2, 3] } },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('handles missing themeMetadata gracefully', () => {
+      const schema = themeConfigSchema(undefined);
+      expect(schema.safeParse({}).success).toBe(true);
+      expect(schema.safeParse({ extra: true }).success).toBe(false);
+    });
+
+    it('handles themeMetadata without config gracefully', () => {
+      const schema = themeConfigSchema({});
+      expect(schema.safeParse({}).success).toBe(true);
+      expect(schema.safeParse({ extra: true }).success).toBe(false);
+    });
+
+    it('skips unsafe keys (__proto__, constructor, prototype) when building schema shape', () => {
+      // Simulate a theme config delivered via JSON.parse (which produces a
+      // real own-property `__proto__`, not a prototype redirect).
+      const config = Object.fromEntries([
+        ['analytics', { id: 'UA-1' }],
+        ['__proto__', { polluted: 'leak' }],
+        ['constructor', { polluted: 'leak' }],
+        ['prototype', { polluted: 'leak' }],
+      ]);
+
+      // Should not throw, should not mutate Object.prototype.
+      expect(() => themeConfigSchema({ config })).not.toThrow();
+      expect(Object.prototype.polluted).toBeUndefined();
+      expect({}.polluted).toBeUndefined();
+
+      // The legitimate key still works.
+      const schema = themeConfigSchema({ config });
+      expect(schema.safeParse({ analytics: {} }).success).toBe(true);
+    });
+  });
+
+  describe('featuresFrontMatterSchema', () => {
+    it('accepts a single valid feature name', () => {
+      getAvailableFeatures.mockReturnValue(
+        new Map([
+          ['code-highlighting', {}],
+          ['gallery', {}],
+        ]),
+      );
+      const schema = featuresFrontMatterSchema('/p', { name: 't' }, {});
+      expect(schema.safeParse('gallery').success).toBe(true);
+    });
+
+    it('accepts an array of valid feature names', () => {
+      getAvailableFeatures.mockReturnValue(
+        new Map([
+          ['code-highlighting', {}],
+          ['gallery', {}],
+        ]),
+      );
+      const schema = featuresFrontMatterSchema('/p', { name: 't' }, {});
+      expect(schema.safeParse(['code-highlighting', 'gallery']).success).toBe(true);
+    });
+
+    it('rejects unknown feature names with helpful message', () => {
+      getAvailableFeatures.mockReturnValue(new Map([['gallery', {}]]));
+      const schema = featuresFrontMatterSchema('/p', { name: 't' }, {});
+      const result = schema.safeParse('nonexistent');
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toContain('Available: gallery');
+    });
+
+    it('treats empty feature set as permissive (string or string[])', () => {
+      getAvailableFeatures.mockReturnValue(new Map());
+      const schema = featuresFrontMatterSchema('/p', { name: 't' }, {});
+      expect(schema.safeParse('anything').success).toBe(true);
+      expect(schema.safeParse(['a', 'b']).success).toBe(true);
+      expect(schema.safeParse(undefined).success).toBe(true);
+    });
+
+    it('treats undefined as valid (optional field)', () => {
+      getAvailableFeatures.mockReturnValue(new Map([['gallery', {}]]));
+      const schema = featuresFrontMatterSchema('/p', { name: 't' }, {});
+      expect(schema.safeParse(undefined).success).toBe(true);
+    });
+  });
+
+  describe('formatZodIssues', () => {
+    it('formats a single root-level issue', () => {
+      const error = {
+        issues: [{ path: [], message: 'Required' }],
+      };
+      expect(formatZodIssues(error)).toBe('  - <root>: Required');
+    });
+
+    it('formats nested-path issues', () => {
+      const error = {
+        issues: [{ path: ['analytics', 'id'], message: 'Expected string' }],
+      };
+      expect(formatZodIssues(error)).toBe('  - analytics.id: Expected string');
+    });
+
+    it('joins multiple issues with newlines', () => {
+      const error = {
+        issues: [
+          { path: ['a'], message: 'first' },
+          { path: ['b', 'c'], message: 'second' },
+        ],
+      };
+      expect(formatZodIssues(error)).toBe('  - a: first\n  - b.c: second');
+    });
+  });
+});
