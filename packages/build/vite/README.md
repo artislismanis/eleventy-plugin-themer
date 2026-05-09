@@ -90,9 +90,21 @@ Eleventy plugin that wraps `@11ty/eleventy-plugin-vite` with theme-aware configu
   - `validateLinks` (boolean | Object) - Validate internal links
   - `preserveNonHtml` (Object) - Preserve non-HTML files. Provide `{ extensions: ['xml', 'txt'] }`
 
-### `getFeatureEntries(projectRoot, themeMetadata, overridePaths?)`
+### `getFeatureEntries(projectRoot, themeMetadata, opts?)`
 
 Returns Vite entry points for the main script and all discovered features. Used internally by `eleventyPluginThemerVite`, but available for advanced use cases.
+
+```js
+import { getFeatureEntries } from '@eleventy-plugin-themer/build-vite';
+import { metadata } from '@eleventy-plugin-themer/theme-base';
+
+const input = getFeatureEntries(__dirname, metadata, {
+  resolvedOverridePaths, // optional; auto-resolved if absent
+  discoveredFeatures, // optional Map; avoids redundant FS scan
+});
+```
+
+If you've already called `getAvailableFeatures()` at plugin init, pass the resulting Map as `opts.discoveredFeatures` to skip a duplicate filesystem scan.
 
 ### Individual Plugins
 
@@ -109,6 +121,22 @@ import {
 ```
 
 All follow the signature `(outputDir, options) => Promise<void>` and throw on failure.
+
+## Integration check
+
+`eleventyPluginThemerVite` runs a one-shot sanity check at plugin init that compares your environment against the package's declared peer ranges:
+
+- Node version vs `engines.node` (>=22)
+- `vite` peer version vs the supported major(s)
+- `@11ty/eleventy-plugin-vite` peer version vs the supported major(s)
+
+On a healthy environment you'll see one line on startup:
+
+```text
+[themer/build-vite 0.1.0] integration check: OK
+```
+
+On mismatch you get actionable warnings. The check **never throws** — a corrupt manifest or unreadable peer is logged and skipped so it can't take down your build. Opt out with `skipIntegrationCheck: true` if you're running a custom build flow.
 
 ## Logging
 

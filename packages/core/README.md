@@ -119,6 +119,28 @@ Discover all available features (theme + user) with source tracking.
 
 **Returns:** `Map<string, { name, source, path }>` where source is `'theme'`, `'user'`, or `'override'`
 
+### Schema helpers (zod-based runtime validation)
+
+```js
+import {
+  themeConfigSchema, // strict-key schema for content/_data/theme.js
+  featuresFrontMatterSchema, // validates page front-matter `features` field
+  formatZodIssues, // pretty-print zod errors
+} from '@eleventy-plugin-themer/core';
+```
+
+`themeConfigSchema(themeMetadata)` rejects unknown top-level keys (typo-catching) but is permissive about inner shapes. `featuresFrontMatterSchema(projectRoot, themeMetadata, overridePaths?)` validates feature names against features actually available in the cascade — useful in `eleventyDataSchema.js`.
+
+### Subpath exports
+
+| Subpath                                           | Stability    | Purpose                                                          |
+| ------------------------------------------------- | ------------ | ---------------------------------------------------------------- |
+| `@eleventy-plugin-themer/core`                    | public       | Main API                                                         |
+| `@eleventy-plugin-themer/core/logger`             | public       | Shared logger (used by build adapters)                           |
+| `@eleventy-plugin-themer/core/internal/safe-keys` | **internal** | Cross-package `UNSAFE_KEYS` constant — may change without notice |
+
+`internal/*` subpaths are not part of the public SemVer surface. See the root README for the full SemVer policy.
+
 ## Creating a Theme
 
 A theme package needs:

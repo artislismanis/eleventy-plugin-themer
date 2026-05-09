@@ -28,6 +28,11 @@ export function escapeCssValue(str) {
 }
 
 const SAFE_URL_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+const NETWORK_SCHEMES = new Set(['http:', 'https:']);
+const TEXT_SCHEMES = new Set(['mailto:', 'tel:']);
+// Percent-encoded CR / LF / NUL must not survive in mailto/tel — some mail
+// clients decode them and honour smuggled headers (Bcc/CC/Subject injection).
+const PERCENT_CRLF = /%0[ad0]/i;
 
 // Strip whitespace + ASCII/C1 control chars + zero-width and bidi-override
 // chars. Used both for scheme detection (so `java\tscript:` can't evade the
@@ -50,5 +55,19 @@ export function safeUrl(url) {
   if (slashIdx !== -1 && slashIdx < colonIdx) return stripped;
   const scheme = stripped.slice(0, colonIdx + 1).toLowerCase();
   if (!SAFE_URL_SCHEMES.has(scheme)) return '#';
+
+  // For http(s), require the authority delimiter to be exactly `//` — never
+  // `\\`. WHATWG URL normalises `\` to `/` for special schemes, so accepting
+  // `https:\\evil.com` would silently route to a remote host.
+  if (NETWORK_SCHEMES.has(scheme)) {
+    if (stripped.slice(colonIdx + 1, colonIdx + 3) !== '//') return '#';
+    if (stripped.includes('\\')) return '#';
+  }
+
+  // For mailto/tel, reject percent-encoded CR/LF/NUL (header smuggling).
+  if (TEXT_SCHEMES.has(scheme) && PERCENT_CRLF.test(stripped)) {
+    return '#';
+  }
+
   return stripped;
 }
