@@ -14,7 +14,7 @@ const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID;
 /**
  * Valid PrismJS theme names (bundled with prismjs package)
  */
-export const VALID_THEMES = new Set([
+const VALID_THEMES = new Set([
   'prism',
   'prism-coy',
   'prism-dark',

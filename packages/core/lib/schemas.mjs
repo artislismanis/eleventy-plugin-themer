@@ -14,11 +14,13 @@
 import { z } from 'zod';
 
 import { getAvailableFeatures } from './cascade/features.mjs';
+import { UNSAFE_KEYS } from './internal/safe-keys.mjs';
 
 export function themeConfigSchema(themeMetadata) {
   const config = themeMetadata?.config || {};
   const shape = {};
   for (const key of Object.keys(config)) {
+    if (UNSAFE_KEYS.has(key)) continue;
     shape[key] = z.unknown().optional();
   }
   return z.object(shape).strict();
@@ -34,8 +36,8 @@ export function featuresFrontMatterSchema(projectRoot, themeMetadata, resolvedOv
   }
 
   const message = `Invalid feature. Available: ${features.join(', ')}`;
-  const featureEnum = z.enum(features, { errorMap: () => ({ message }) });
-  return z.union([featureEnum, z.array(featureEnum)]).optional();
+  const featureEnum = z.enum(features, { error: () => message });
+  return z.union([featureEnum, z.array(featureEnum)], { error: () => message }).optional();
 }
 
 /**

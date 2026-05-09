@@ -1,27 +1,32 @@
 import { describe, it, expect } from 'vitest';
 
-import { prismThemePlugin, VALID_THEMES } from '../../plugins/prism-theme.mjs';
+import { prismThemePlugin } from '../../plugins/prism-theme.mjs';
+
+const BUNDLED_THEMES = [
+  'prism',
+  'prism-coy',
+  'prism-dark',
+  'prism-funky',
+  'prism-okaidia',
+  'prism-solarizedlight',
+  'prism-tomorrow',
+  'prism-twilight',
+];
 
 describe('prismThemePlugin', () => {
-  describe('VALID_THEMES', () => {
-    it('should contain all bundled PrismJS themes', () => {
-      expect(VALID_THEMES).toContain('prism');
-      expect(VALID_THEMES).toContain('prism-coy');
-      expect(VALID_THEMES).toContain('prism-dark');
-      expect(VALID_THEMES).toContain('prism-funky');
-      expect(VALID_THEMES).toContain('prism-okaidia');
-      expect(VALID_THEMES).toContain('prism-solarizedlight');
-      expect(VALID_THEMES).toContain('prism-tomorrow');
-      expect(VALID_THEMES).toContain('prism-twilight');
-      expect(VALID_THEMES.size).toBe(8);
-    });
-  });
-
   describe('validation', () => {
-    it('should throw for invalid theme name', () => {
-      expect(() => prismThemePlugin({ prismTheme: 'nonexistent' })).toThrow(
-        '[prism-theme] Invalid theme "nonexistent"',
-      );
+    it('should throw for invalid theme name and surface the bundled list', () => {
+      let err;
+      try {
+        prismThemePlugin({ prismTheme: 'nonexistent' });
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeDefined();
+      expect(err.message).toContain('[prism-theme] Invalid theme "nonexistent"');
+      for (const theme of BUNDLED_THEMES) {
+        expect(err.message).toContain(theme);
+      }
     });
 
     it('should throw for path traversal attempt', () => {
@@ -31,7 +36,7 @@ describe('prismThemePlugin', () => {
     });
 
     it('should not throw for valid theme names', () => {
-      for (const theme of VALID_THEMES) {
+      for (const theme of BUNDLED_THEMES) {
         expect(() => prismThemePlugin({ prismTheme: theme })).not.toThrow();
       }
     });

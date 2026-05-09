@@ -7,7 +7,7 @@ This guide provides build commands, code style guidelines, architectural pattern
 ### Root Level Commands
 
 ```bash
-# Run all tests (278 tests, 20 files)
+# Run all tests (304 tests, 23 files)
 npm run test
 
 # Run tests in watch mode
@@ -145,10 +145,13 @@ for (const key of Object.keys(source)) {
 }
 ```
 
+The `UNSAFE_KEYS` constant is centralized at `packages/core/lib/internal/safe-keys.mjs` and exposed cross-package via the `@eleventy-plugin-themer/core/internal/safe-keys` subpath export. All consumers import from there — never redefine.
+
 Files with guards:
 
 - `packages/core/lib/cascade/config.mjs` — `deepMergeConfig()`
 - `packages/build/vite/utils/merge-config.mjs` — `deepMergeViteConfig()`
+- `packages/build/vite/theme-config.mjs` — `mergeThemeBuildHints()`
 
 ### Template Escaping (autoescape is OFF)
 
@@ -162,7 +165,7 @@ Nunjucks runs with `autoescape: false`. All dynamic values in templates **must**
 | JS string literals | `escapeJsString`  | `var id = '{{ gaId \| escapeJsString }}'`       |
 | URLs in href/src   | `safeUrl`         | `href="{{ url \| safeUrl }}"`                   |
 
-The `socialUrl()` filter already validates URL protocols internally (blocks `javascript:` and `data:` schemes).
+The `socialUrl()` filter validates URL protocols via the `safeUrl` allowlist (only `http`, `https`, `mailto`, `tel`, plus relative URLs are permitted). It also strips whitespace, control, zero-width and bidi-override chars from the rendered value.
 
 ### Vite Config Deep Merge
 
@@ -255,6 +258,24 @@ Core is **not just a utility package** - it is the **theme framework itself**. I
 
 4. **Convention over Configuration** — Theme metadata defines defaults, user overrides are optional
 
+### Public API Surface (`@eleventy-plugin-themer/core`)
+
+Re-exported from `lib/index.mjs` for consumer use:
+
+| Symbol | Purpose |
+| --- | --- |
+| `eleventyPluginThemer` (named export) | Eleventy plugin entry — call via `eleventyConfig.addPlugin(eleventyPluginThemer, opts)` |
+| `resolveThemeMetadata` | Read & validate `theme.json` for a theme package |
+| `getAvailableFeatures` | Cascade-aware feature discovery |
+| `resolveFeatureEntryPath` | Pick `index.auto.js` over `index.js` for a feature dir |
+| `resolveResource` | Resolve a single resource via the cascade |
+| `getThemeRoot`, `buildPaths` | Path helpers used by build adapters |
+| `resolveOverridePaths`, `DEFAULT_ASSET_ENTRIES` | Defaults consumed by build adapters |
+| `themeConfigSchema`, `featuresFrontMatterSchema`, `formatZodIssues` | Zod schemas + formatter for consumer-side validation |
+| `generateDirConfig` *(deprecated)* | Pre-3.0 dir helper — slated for removal in v4 |
+
+Subpath exports: `./logger`, `./internal/safe-keys` (peer-package internal — not for end users).
+
 ### Core Implementation Details
 
 **Plugin Initialization:** `eleventyPluginThemer()` in `packages/core/lib/index.mjs` calls `configureCascade()` to set up the full data/asset/config cascade. If modifying plugin init, ensure cascade setup is preserved.
@@ -295,7 +316,12 @@ Build adapters are **thin wrappers** that:
 
 ### Vite Implementation Details
 
-**Feature Discovery:** Features are discovered once via `getAvailableFeatures()` in `eleventyPluginThemerVite()` and passed as `discoveredFeatures` to all downstream consumers. Do not call `getAvailableFeatures()` redundantly — accept the optional `discoveredFeatures` parameter instead.
+**Feature Discovery:** Features are discovered once via `getAvailableFeatures()` in `eleventyPluginThemerVite()` and threaded through `discoveredFeatures` to all downstream consumers.
+
+- `getFeaturePathsForBuild(discoveredFeatures)` is a strict internal helper — it `throw`s if `discoveredFeatures` is not a `Map`.
+- `getFeatureEntries(projectRoot, themeMetadata, opts?)` is the public adapter API. `opts` carries optional `discoveredFeatures` and `resolvedOverridePaths`; if `discoveredFeatures` is omitted, it falls back to `getAvailableFeatures()` for ergonomic external use.
+
+**Decomposition:** `eleventyPluginThemerVite()` orchestrates `validatePluginOptions`, `loadEleventyVitePlugin`, `resolveBuildContext`, and `buildViteOptions`. `createThemeViteConfig()` orchestrates `buildResolveAliases`, `buildScssConfig`, `buildPluginsArray`, `buildOptimizationPlugin`. Keep these helpers private to their files.
 
 ### Design Principles (Build Adapters)
 
@@ -319,10 +345,10 @@ import { getAvailableFeatures } from '@eleventy-plugin-themer/core';
 #### Minimal Parameter Passing
 
 ```javascript
-// GOOD: Core extracts what it needs
-getFeatureEntries(projectRoot, themeMetadata)
+// GOOD: Core extracts what it needs; optional context goes in an opts bag
+getFeatureEntries(projectRoot, themeMetadata, { discoveredFeatures, resolvedOverridePaths })
 
-// BAD: Passing parameters core already has
+// BAD: Positional parameter proliferation
 getFeatureEntries(projectRoot, themeName, overridePaths, themeFeatures)
 ```
 
@@ -522,9 +548,11 @@ Generic API name allows for multiple implementations.
 
 ---
 
-## Resolved Issues (v3.0.0 Refactor)
+## Resolved Issues
 
 These issues were identified and fixed — watch for regressions:
+
+### v3.0.0 Refactor
 
 1. **Prototype pollution** in deep merge functions (SEC-1)
 2. **CSS injection** via unescaped config values in `styles.njk` (SEC-2)
@@ -534,3 +562,16 @@ These issues were identified and fixed — watch for regressions:
 6. **Dead code** removed from `resolver.mjs` (~120 lines: `createResourceResolver`, `createExistsChecker`, `scanDirectoriesWithCascade`)
 7. **Diamond imports** removed from `resolver.mjs` backwards-compat re-exports
 8. **Feature discovery** consolidated from 3x calls to 1x in vite adapter init
+
+### Post-3.0.0 Hardening
+
+9. **Dependency CVEs** — vite, fast-uri, liquidjs, picomatch, postcss, yaml, brace-expansion all upgraded via `npm audit fix`
+10. **`safeUrl()` allowlist** (SEC-13) — replaced blocklist with allowlist (`http`, `https`, `mailto`, `tel`, relative); strips control / zero-width chars before scheme detection. Now blocks `vbscript:`, `file:`, and obfuscation bypasses
+11. **`escapeJsString` U+2028/U+2029** (SEC-14) — escapes JS line/paragraph separators
+12. **`escapeCssValue` strict** (SEC-15) — strips `;`, `\`, and `/* … */` to prevent sibling-declaration injection and CSS escape sequences
+13. **`UNSAFE_KEYS` centralized** at `core/lib/internal/safe-keys.mjs` (was redefined in 3 places)
+14. **`getFeaturePathsForBuild` strict** — throws when `discoveredFeatures` is not a `Map`; no silent fallback
+15. **`getFeatureEntries` options-bag** — collapsed positional `(projectRoot, themeMetadata, resolvedOverridePaths, discoveredFeatures)` to `(projectRoot, themeMetadata, opts?)`
+16. **Dead code** — removed `validate.mjs` (167 lines, no consumers); demoted `VALID_THEMES` to module-internal
+17. **`createThemeViteConfig` / `eleventyPluginThemerVite` decomposed** into named helpers (see Vite Implementation Details)
+18. **Schema validation** — `featuresFrontMatterSchema` migrated from zod 3 `errorMap` API to zod 4 `error` callback (the helpful "Available: …" message was silently lost under zod 4)

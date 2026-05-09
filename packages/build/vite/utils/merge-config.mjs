@@ -5,8 +5,7 @@
  * objects like resolve.alias, css.preprocessorOptions, and plugins arrays.
  */
 
-/** Keys that must never be merged to prevent prototype pollution */
-const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+import { UNSAFE_KEYS } from '@eleventy-plugin-themer/core/internal/safe-keys';
 
 /**
  * Deep merge Vite configuration objects

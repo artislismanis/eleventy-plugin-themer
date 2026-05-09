@@ -34,22 +34,23 @@ describe('build-vite/utils/features.mjs', () => {
         ],
         ['gallery', { name: 'gallery', path: '/path/to/gallery.js', source: 'user' }],
       ]);
-      getAvailableFeatures.mockReturnValue(mockFeatures);
 
-      const themeMetadata = { name: 'test-theme' };
-      const result = getFeaturePathsForBuild('/project', themeMetadata);
+      const result = getFeaturePathsForBuild(mockFeatures);
 
       expect(result).toBeInstanceOf(Map);
       expect(result.get('code-highlighting')).toBe('/path/to/code.js');
       expect(result.get('gallery')).toBe('/path/to/gallery.js');
     });
 
-    it('should return empty Map when no features', () => {
-      getAvailableFeatures.mockReturnValue(new Map());
-
-      const result = getFeaturePathsForBuild('/project', { name: 'test-theme' });
-
+    it('should return empty Map when given empty Map', () => {
+      const result = getFeaturePathsForBuild(new Map());
       expect(result.size).toBe(0);
+    });
+
+    it('should throw TypeError when discoveredFeatures is missing', () => {
+      expect(() => getFeaturePathsForBuild()).toThrow(TypeError);
+      expect(() => getFeaturePathsForBuild(null)).toThrow(/discoveredFeatures/);
+      expect(() => getFeaturePathsForBuild({})).toThrow(/discoveredFeatures/);
     });
   });
 
@@ -118,13 +119,27 @@ describe('build-vite/utils/features.mjs', () => {
       getAvailableFeatures.mockReturnValue(new Map());
       resolveResource.mockReturnValue({ path: '/project/scripts/main.js', source: 'theme' });
 
-      getFeatureEntries('/project', mockThemeMetadata, resolvedPaths);
+      getFeatureEntries('/project', mockThemeMetadata, { resolvedOverridePaths: resolvedPaths });
 
       expect(getAvailableFeatures).toHaveBeenCalledWith(
         '/project',
         mockThemeMetadata,
         resolvedPaths,
       );
+    });
+
+    it('should skip getAvailableFeatures when discoveredFeatures provided', () => {
+      const preDiscovered = new Map([
+        ['existing', { name: 'existing', path: '/x/existing.js', source: 'theme' }],
+      ]);
+      resolveResource.mockReturnValue({ path: '/project/scripts/main.js', source: 'theme' });
+
+      const result = getFeatureEntries('/project', mockThemeMetadata, {
+        discoveredFeatures: preDiscovered,
+      });
+
+      expect(getAvailableFeatures).not.toHaveBeenCalled();
+      expect(result['/existing.js']).toBe('/x/existing.js');
     });
 
     it('should log feature discovery when features exist', () => {

@@ -36,6 +36,25 @@ describe('filters.mjs', () => {
       );
     });
 
+    it('should strip semicolons preventing sibling-declaration injection', () => {
+      expect(filters.escapeCssValue('red; background:url(//evil)')).toBe(
+        'red background:url//evil',
+      );
+    });
+
+    it('should strip backslashes preventing CSS escape sequences', () => {
+      expect(filters.escapeCssValue('red\\22 ;')).toBe('red22 ');
+    });
+
+    it('should strip CSS comment blocks', () => {
+      expect(filters.escapeCssValue('red /* malicious */ ')).toBe('red  ');
+    });
+
+    it('should strip unclosed CSS comment markers', () => {
+      expect(filters.escapeCssValue('red /* attacker payload')).toBe('red  attacker payload');
+      expect(filters.escapeCssValue('red */ surprise')).toBe('red  surprise');
+    });
+
     it('should allow valid CSS values through', () => {
       expect(filters.escapeCssValue('#ff0000')).toBe('#ff0000');
       expect(filters.escapeCssValue('16px')).toBe('16px');
@@ -57,6 +76,14 @@ describe('filters.mjs', () => {
       expect(filters.escapeJsString('</script>')).toBe('\\x3c/script\\x3e');
     });
 
+    it('should escape U+2028 line separator', () => {
+      expect(filters.escapeJsString('a b')).toBe('a\\u2028b');
+    });
+
+    it('should escape U+2029 paragraph separator', () => {
+      expect(filters.escapeJsString('a b')).toBe('a\\u2029b');
+    });
+
     it('should return empty string for non-strings', () => {
       expect(filters.escapeJsString(null)).toBe('');
     });
@@ -68,6 +95,19 @@ describe('filters.mjs', () => {
       expect(filters.safeUrl('http://example.com')).toBe('http://example.com');
     });
 
+    it('should allow mailto: and tel: URLs', () => {
+      expect(filters.safeUrl('mailto:foo@bar.com')).toBe('mailto:foo@bar.com');
+      expect(filters.safeUrl('tel:+15551234567')).toBe('tel:+15551234567');
+    });
+
+    it('should allow relative URLs', () => {
+      expect(filters.safeUrl('/path')).toBe('/path');
+      expect(filters.safeUrl('#anchor')).toBe('#anchor');
+      expect(filters.safeUrl('?q=1')).toBe('?q=1');
+      expect(filters.safeUrl('./foo')).toBe('./foo');
+      expect(filters.safeUrl('foo/bar')).toBe('foo/bar');
+    });
+
     it('should block javascript: URLs', () => {
       expect(filters.safeUrl('javascript:alert(1)')).toBe('#');
       expect(filters.safeUrl('JAVASCRIPT:alert(1)')).toBe('#');
@@ -77,9 +117,46 @@ describe('filters.mjs', () => {
       expect(filters.safeUrl('data:text/html,<script>alert(1)</script>')).toBe('#');
     });
 
+    it('should block vbscript: URLs', () => {
+      expect(filters.safeUrl('vbscript:msgbox(1)')).toBe('#');
+    });
+
+    it('should block file: URLs', () => {
+      expect(filters.safeUrl('file:///etc/passwd')).toBe('#');
+    });
+
+    it('should block control-char bypasses', () => {
+      expect(filters.safeUrl('java\tscript:alert(1)')).toBe('#');
+      expect(filters.safeUrl('java\nscript:alert(1)')).toBe('#');
+      expect(filters.safeUrl('  javascript:alert(1)')).toBe('#');
+    });
+
+    it('should block zero-width-char bypasses', () => {
+      expect(filters.safeUrl('​javascript:alert(1)')).toBe('#');
+      expect(filters.safeUrl('java﻿script:alert(1)')).toBe('#');
+    });
+
     it('should return # for non-strings', () => {
       expect(filters.safeUrl(null)).toBe('#');
       expect(filters.safeUrl(undefined)).toBe('#');
+    });
+
+    it('should return # for empty / whitespace-only', () => {
+      expect(filters.safeUrl('')).toBe('#');
+      expect(filters.safeUrl('   ')).toBe('#');
+    });
+
+    it('should strip bidi/zero-width chars from valid URLs (display safety)', () => {
+      // RTL override embedded in a https URL — must not survive into rendered href.
+      expect(filters.safeUrl('https://example.com/‮path')).toBe('https://example.com/path');
+      // Zero-width space inside a relative URL.
+      expect(filters.safeUrl('/foo​bar')).toBe('/foobar');
+    });
+
+    it('should strip CR/LF from mailto: URLs (header injection)', () => {
+      expect(filters.safeUrl('mailto:foo@bar\r\nBcc:victim@evil')).toBe(
+        'mailto:foo@barBcc:victim@evil',
+      );
     });
   });
 

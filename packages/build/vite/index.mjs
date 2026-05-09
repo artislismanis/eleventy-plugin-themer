@@ -16,6 +16,7 @@ import {
 import { createThemeViteConfig } from './theme-config.mjs';
 import { getFeatureEntries as _getFeatureEntries } from './utils/features.mjs';
 import { ASSET_PATHS } from './utils/constants.mjs';
+import { runIntegrationCheck } from './utils/integration-check.mjs';
 
 /**
  * @public
@@ -135,32 +136,21 @@ function createDefaultRollupOutput(_options = {}) {
  *   return { dir: { input: 'content', output: '_site' } };
  * }
  */
-export async function eleventyPluginThemerVite(eleventyConfig, options = {}) {
-  const {
-    theme,
-    projectRoot,
-    scriptsEntry = 'overrides/scripts/main.js',
-    optimizations = {},
-    overridePaths = {},
-    viteOptions = {},
-    tempFolderName = '.11ty-vite',
-  } = options;
-
+function validatePluginOptions({ theme, projectRoot }) {
   if (!theme) {
     throw new Error(
       'eleventyPluginThemerVite requires a `theme` option specifying the theme package name.',
     );
   }
-
   if (!projectRoot) {
     throw new Error('eleventyPluginThemerVite requires a `projectRoot` option.');
   }
+}
 
-  // Dynamically import the Vite plugin to avoid requiring it as a direct dependency
-  let EleventyVitePlugin;
+async function loadEleventyVitePlugin() {
   try {
-    const vitePluginModule = await import('@11ty/eleventy-plugin-vite');
-    EleventyVitePlugin = vitePluginModule.default;
+    const mod = await import('@11ty/eleventy-plugin-vite');
+    return mod.default;
   } catch (cause) {
     throw new Error(
       'eleventyPluginThemerVite requires @11ty/eleventy-plugin-vite to be installed.\n' +
@@ -168,41 +158,29 @@ export async function eleventyPluginThemerVite(eleventyConfig, options = {}) {
       { cause },
     );
   }
+}
 
-  // Resolve theme metadata
+function resolveBuildContext({ projectRoot, theme, overridePaths }) {
   const themeMetadata = resolveThemeMetadata(projectRoot, theme);
   const resolvedOverridePaths = resolveOverridePaths(themeMetadata, overridePaths);
-
-  // Discover features once and pass to all downstream consumers
   const discoveredFeatures = getAvailableFeatures(
     projectRoot,
     themeMetadata,
     resolvedOverridePaths,
   );
+  return { themeMetadata, resolvedOverridePaths, discoveredFeatures };
+}
 
-  // Get feature entries (pass pre-discovered features and resolved paths to avoid redundant work)
-  const featureEntries = _getFeatureEntries(
-    projectRoot,
-    themeMetadata,
-    resolvedOverridePaths,
-    discoveredFeatures,
-  );
+function buildViteOptions(ctx, opts) {
+  const { themeMetadata, resolvedOverridePaths, discoveredFeatures, featureEntries } = ctx;
+  const { projectRoot, scriptsEntry, optimizations, viteOptions, tempFolderName } = opts;
 
-  // Build rollup input with main entry + features
-  const rollupInput = {
-    main: path.resolve(projectRoot, scriptsEntry),
-    ...featureEntries,
-  };
-
-  // Create the Vite configuration (pass pre-discovered features and resolved paths)
-  const themeViteConfig = createThemeViteConfig(themeMetadata, {
+  return createThemeViteConfig(themeMetadata, {
     projectRoot,
     resolvedOverridePaths,
     optimizations,
     discoveredFeatures,
-    dirs: {
-      temp: tempFolderName,
-    },
+    dirs: { temp: tempFolderName },
     assetsInclude: ['**/*.xml', '**/*.txt', '**/*.xsl'],
     publicDir: 'public',
     server: {
@@ -228,24 +206,47 @@ export async function eleventyPluginThemerVite(eleventyConfig, options = {}) {
       manifest: true,
       emptyOutDir: false,
       rollupOptions: {
-        input: rollupInput,
+        input: {
+          main: path.resolve(projectRoot, scriptsEntry),
+          ...featureEntries,
+        },
         output: createDefaultRollupOutput(),
       },
       cssCodeSplit: true,
     },
-    // Merge user's additional Vite options
     ...viteOptions,
   });
+}
 
-  // Register the Vite plugin
+export async function eleventyPluginThemerVite(eleventyConfig, options = {}) {
+  const opts = {
+    scriptsEntry: 'overrides/scripts/main.js',
+    optimizations: {},
+    overridePaths: {},
+    viteOptions: {},
+    tempFolderName: '.11ty-vite',
+    ...options,
+  };
+
+  validatePluginOptions(opts);
+  runIntegrationCheck({ silent: opts.skipIntegrationCheck });
+  const EleventyVitePlugin = await loadEleventyVitePlugin();
+
+  const ctx = resolveBuildContext(opts);
+  const featureEntries = _getFeatureEntries(opts.projectRoot, ctx.themeMetadata, {
+    resolvedOverridePaths: ctx.resolvedOverridePaths,
+    discoveredFeatures: ctx.discoveredFeatures,
+  });
+
+  const themeViteConfig = buildViteOptions({ ...ctx, featureEntries }, opts);
+
   eleventyConfig.addPlugin(EleventyVitePlugin, {
-    tempFolderName,
+    tempFolderName: opts.tempFolderName,
     viteOptions: themeViteConfig,
   });
 
-  // Return useful info for the consumer
   return {
-    themeMetadata,
+    themeMetadata: ctx.themeMetadata,
     featureEntries,
   };
 }

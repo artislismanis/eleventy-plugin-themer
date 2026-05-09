@@ -9,8 +9,7 @@
 import path from 'path';
 import fs from 'fs';
 
-/** Keys that must never be merged to prevent prototype pollution */
-const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+import { UNSAFE_KEYS } from '../internal/safe-keys.mjs';
 
 /**
  * Deep merge configuration objects
