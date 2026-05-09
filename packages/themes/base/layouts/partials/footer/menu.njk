@@ -1,0 +1,24 @@
+{#
+  Secondary footer menu (T&Cs, Privacy, etc.)
+
+  Uses eleventyNavigation plugin with parent: "footer" in page front matter.
+
+  Example page front matter:
+  ---
+  eleventyNavigation:
+    key: Privacy Policy
+    parent: footer
+    order: 1
+  ---
+#}
+{%- set footerNavItems = collections.all | eleventyNavigation("footer") -%}
+
+{% if footerNavItems.length %}
+  <nav class="footer-menu" aria-label="Footer navigation">
+    <ul>
+      {% for entry in footerNavItems %}
+        <li><a href="{{ entry.url | safeUrl }}">{{ entry.title | escapeHtml }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+{% endif %}

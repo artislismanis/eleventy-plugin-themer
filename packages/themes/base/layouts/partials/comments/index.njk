@@ -1,0 +1,17 @@
+{#
+  Comments wrapper - supports multiple providers
+  Currently supports: disqus
+  Future: could add utterances, giscus, etc.
+
+  Config: theme.comments
+  - enabled: boolean
+  - provider: 'disqus'
+  - disqus.shortname: string
+
+  Per-page disable: set `comments: false` in frontmatter
+#}
+{% if theme and theme.comments and theme.comments.enabled %}
+  {% if theme.comments.provider == 'disqus' %}
+    {% include "partials/comments/disqus.njk" %}
+  {% endif %}
+{% endif %}

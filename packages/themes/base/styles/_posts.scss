@@ -3,75 +3,74 @@
 // ============================================
 
 .postlist {
-	counter-reset: start-from var(--postlist-index);
-	list-style: none;
-	padding: 0;
-	padding-left: 1.5rem;
+  counter-reset: start-from var(--postlist-index);
+  list-style: none;
+  padding: 0;
+  padding-left: 1.5rem;
 }
 
 .postlist-link {
-	font-size: 1.1875em; /* 19px /16 */
-	font-weight: 700;
-	flex-basis: calc(100% - 1.5rem);
-	padding-left: 0.25em;
-	padding-right: 0.5em;
-	text-underline-position: from-font;
-	text-underline-offset: 0;
-	text-decoration-thickness: 1px;
+  font-size: 1.1875em; /* 19px /16 */
+  font-weight: 700;
+  flex-basis: calc(100% - 1.5rem);
+  padding-left: 0.25em;
+  padding-right: 0.5em;
+  text-underline-position: from-font;
+  text-underline-offset: 0;
+  text-decoration-thickness: 1px;
 }
 
 .post-tag {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	text-transform: capitalize;
-	font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-style: italic;
 }
 
 .postlist-item {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	counter-increment: start-from -1;
-	margin-bottom: 1em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  counter-increment: start-from -1;
+  margin-bottom: 1em;
 
-	&::before {
-		display: inline-block;
-		pointer-events: none;
-		content: '' counter(start-from, decimal-leading-zero) '. ';
-		line-height: 100%;
-		text-align: right;
-		margin-left: -1.5rem;
-	}
+  &::before {
+    display: inline-block;
+    pointer-events: none;
+    content: '' counter(start-from, decimal-leading-zero) '. ';
+    line-height: 100%;
+    text-align: right;
+    margin-left: -1.5rem;
+  }
 
-	&-active .postlist-link {
-		font-weight: bold;
-	}
+  &-active .postlist-link {
+    font-weight: bold;
+  }
 
-	> .post-tag {
-		align-self: center;
-	}
+  > .post-tag {
+    align-self: center;
+  }
 }
 
 .postlist-date,
 .postlist-item::before {
-	font-size: 0.8125em; /* 13px /16 */
-	color: var(--color-gray-90);
+  font-size: 0.8125em; /* 13px /16 */
+  color: var(--color-text-muted);
 }
 
 .postlist-date {
-	word-spacing: -0.5px;
+  word-spacing: -0.5px;
 }
 
 .post-metadata {
-	display: inline-flex;
-	flex-wrap: wrap;
-	gap: 0.5em;
-	list-style: none;
-	padding: 0;
-	margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 
-	time {
-		margin-right: 1em;
-	}
+  time {
+    margin-right: 1em;
+  }
 }

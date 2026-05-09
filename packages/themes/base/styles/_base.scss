@@ -3,28 +3,28 @@
 // ============================================
 
 * {
-	box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 @view-transition {
-	navigation: auto;
+  navigation: auto;
 }
 
 html,
 body {
-	padding: 0;
-	margin: 0 auto;
-	font-family: var(--font-family);
-	color: var(--text-color);
-	background-color: var(--background-color);
+  padding: 0;
+  margin: 0 auto;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background-color: var(--color-background);
 }
 
 html {
-	overflow-y: scroll;
+  overflow-y: scroll;
 }
 
 body {
-	max-width: 40em;
+  max-width: 40em;
 }
 
 // ============================================
@@ -32,50 +32,50 @@ body {
 // ============================================
 
 p {
-	line-height: 1.5;
+  line-height: 1.5;
 
-	&:last-child {
-		margin-bottom: 0;
-	}
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 li {
-	line-height: 1.5;
+  line-height: 1.5;
 }
 
 a[href] {
-	color: var(--text-color-link);
+  color: var(--color-link);
 
-	&:visited {
-		color: var(--text-color-link-visited);
-	}
+  &:visited {
+    color: var(--color-link);
+  }
 
-	&:hover,
-	&:active {
-		color: var(--text-color-link-active);
-	}
+  &:hover,
+  &:active {
+    color: var(--color-link-hover);
+  }
 }
 
 pre,
 code {
-	font-family: var(--font-family-monospace);
+  font-family: var(--font-family-monospace);
 }
 
 pre:not([class*='language-']) {
-	margin: 0.5em 0;
-	line-height: 1.375; /* 22px /16 */
-	tab-size: var(--syntax-tab-size);
-	hyphens: none;
-	direction: ltr;
-	text-align: left;
-	white-space: pre;
-	word-spacing: normal;
-	word-break: normal;
-	overflow-x: auto;
+  margin: 0.5em 0;
+  line-height: 1.375; /* 22px /16 */
+  tab-size: var(--syntax-tab-size);
+  hyphens: none;
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  overflow-x: auto;
 }
 
 code {
-	word-break: break-all;
+  word-break: break-all;
 }
 
 // ============================================
@@ -84,36 +84,36 @@ code {
 
 // Fluid images via https://www.zachleat.com/web/fluid-images/
 img {
-	max-width: 100%;
+  max-width: 100%;
 
-	&[width][height] {
-		height: auto;
-	}
+  &[width][height] {
+    height: auto;
+  }
 
-	&[src$='.svg'] {
-		width: 100%;
-		height: auto;
-		max-width: none;
-	}
+  &[src$='.svg'] {
+    width: 100%;
+    height: auto;
+    max-width: none;
+  }
 }
 
 video,
 iframe {
-	width: 100%;
-	height: auto;
+  width: 100%;
+  height: auto;
 }
 
 iframe {
-	aspect-ratio: 16/9;
+  aspect-ratio: 16/9;
 }
 
 table {
-	margin: 1em 0;
+  margin: 1em 0;
 
-	td,
-	th {
-		padding-right: 1em;
-	}
+  td,
+  th {
+    padding-right: 1em;
+  }
 }
 
 // ============================================
@@ -122,81 +122,81 @@ table {
 
 // https://www.a11yproject.com/posts/how-to-hide-content/
 .visually-hidden:not(:focus):not(:active) {
-	clip-path: inset(50%);
-	height: 1px;
-	overflow: hidden;
-	position: absolute;
-	white-space: nowrap;
-	width: 1px;
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 #skip-link {
-	text-decoration: none;
-	background: var(--background-color);
-	color: var(--text-color);
-	padding: 0.5rem 1rem;
-	border: 1px solid var(--color-gray-90);
-	border-radius: 2px;
+  text-decoration: none;
+  background: var(--color-background);
+  color: var(--color-text);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
 
-	// Prevent visually-hidden skip link from pushing content around when focused
-	&.visually-hidden:focus {
-		position: absolute;
-		top: 1rem;
-		left: 1rem;
-		z-index: 999;
-	}
+  // Prevent visually-hidden skip link from pushing content around when focused
+  &.visually-hidden:focus {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 999;
+  }
 }
 
 .heading-wrapper {
-	display: flex;
-	align-items: flex-start;
+  display: flex;
+  align-items: flex-start;
 }
 
 .header-anchor {
-	line-height: 1; // Force the line-height to match the text size
-	align-self: flex-start; // Explicitly align this flex item to top
-	margin-top: 0.2rem;
-	font-size: 1.1em;
-	font-weight: bold;
-	text-decoration: none;
-	margin-left: 0.3rem;
-	color: inherit;
-	opacity: 0.6;
-	transition:
-		opacity 0.2s ease,
-		color 0.2s ease;
+  line-height: 1; // Force the line-height to match the text size
+  align-self: flex-start; // Explicitly align this flex item to top
+  margin-top: 0.2rem;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-decoration: none;
+  margin-left: 0.3rem;
+  color: inherit;
+  opacity: 0.6;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease;
 }
 
 // Dynamic top margin based on heading level
 h2 + .header-anchor {
-	margin-top: 0.25em; // Relative to h2 size
-	font-size: 1.5em;
+  margin-top: 0.25em; // Relative to h2 size
+  font-size: 1.5em;
 }
 
 h3 + .header-anchor {
-	margin-top: 0.2em; // Relative to h3 size
-	font-size: 1.2em;
+  margin-top: 0.2em; // Relative to h3 size
+  font-size: 1.2em;
 }
 
 h4 + .header-anchor {
-	margin-top: 0.2em; // Relative to h4 size
-	font-size: 1em;
+  margin-top: 0.2em; // Relative to h4 size
+  font-size: 1em;
 }
 
 h5 + .header-anchor,
 h6 + .header-anchor {
-	margin-top: 0.15em; // Relative to h5/h6 size
+  margin-top: 0.15em; // Relative to h5/h6 size
 }
 
 .header-anchor:hover {
-	opacity: 1;
-	color: #06c; // Change this to your preferred highlight color
-	text-decoration: none;
+  opacity: 1;
+  color: #06c; // Change this to your preferred highlight color
+  text-decoration: none;
 }
 
 .header-anchor:focus {
-	opacity: 1;
-	color: #06c;
-	outline: 2px solid #06c;
-	outline-offset: 2px;
+  opacity: 1;
+  color: #06c;
+  outline: 2px solid #06c;
+  outline-offset: 2px;
 }

@@ -1,73 +1,123 @@
 <!doctype html>
-<html lang="{{ site.language }}">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>{{ title or site.title }}</title>
-		<meta name="description" content="{{ description or site.description }}" />
-		<link
-			rel="alternate"
-			href="/feed/feed.xml"
-			type="application/atom+xml"
-			title="{{ site.title }}"
-		/>
+<html
+  lang="{{ site.language | escapeAttr }}"
+  data-default-theme="{{ theme.themeToggle.defaultTheme | default('auto') | escapeAttr }}"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ (title or site.title) | escapeHtml }}</title>
+    <meta name="description" content="{{ (description or site.description) | escapeAttr }}" />
 
-		<meta name="generator" content="{{ eleventy.generator }}" />
+    {# Favicon from theme config #}
+    {% if theme and theme.logos and theme.logos.favicon %}
+      <link rel="icon" href="{{ theme.logos.favicon | safeUrl | escapeAttr }}" />
+    {% endif %}
 
-		{# Vite will handle CSS imports from JS - no need for separate CSS links #}
-	</head>
-	<body class="page-{{ page.fileSlug }}">
-		<a href="#main" id="skip-link" class="visually-hidden"
-			>Skip to main content</a
-		>
+    <link
+      rel="alternate"
+      href="/feed/feed.xml"
+      type="application/atom+xml"
+      title="{{ site.title | escapeAttr }}"
+    />
 
-		<header>
-			<a href="/" class="home-link">{{ site.title }}</a>
+    <meta name="generator" content="{{ eleventy.generator | escapeAttr }}" />
 
-			{#- Read more about `eleventy-navigation` at https://www.11ty.dev/docs/plugins/navigation/ #}
-			<nav>
-				<h2 class="visually-hidden">Top level navigation menu</h2>
-				<ul class="nav">
-					{%- for entry in collections.all | eleventyNavigation %}
-						<li class="nav-item">
-							<a
-								href="{{ entry.url }}"
-								{% if entry.url == page.url %}aria-current="page"{% endif %}
-								>{{ entry.title }}</a
-							>
-						</li>
-					{%- endfor %}
-				</ul>
-			</nav>
-		</header>
+    {# Theme CSS custom properties #}
+    {% include "partials/theme/styles.njk" %}
 
-		<main id="main">
-			<heading-anchors> {{ content | safe }} </heading-anchors>
-		</main>
+    {# Analytics (Google Analytics, Plausible) #}
+    {% include "partials/head/analytics.njk" %}
 
-		<footer>
-			<p>
-				<em
-					>Built with
-					<a href="https://www.11ty.dev/">{{ eleventy.generator }}</a></em
-				>
-			</p>
-		</footer>
+    {# Vite will handle CSS imports from JS - no need for separate CSS links #}
+  </head>
+  <body class="page-{{ page.fileSlug | escapeAttr }}">
+    <a href="#main" id="skip-link" class="visually-hidden">Skip to main content</a>
 
-		<!-- This page `{{ page.url }}` was built on {% currentBuildDate %} -->
+    <header>
+      {# Logo or site title #}
+      {% if theme and theme.logos and theme.logos.default %}
+        <a href="/" class="home-link">
+          <img
+            src="{{ theme.logos.default | safeUrl | escapeAttr }}"
+            alt="{{ site.title | escapeAttr }}"
+            class="site-logo"
+          />
+        </a>
+      {% else %}
+        <a href="/" class="home-link">{{ site.title | escapeHtml }}</a>
+      {% endif %}
 
-		{# Global JavaScript - Vite will process and bundle #}
-		{# User's main.js imports theme styles/scripts #}
-		<script type="module" src="/assets/scripts/main.js"></script>
+      {#- Read more about `eleventy-navigation` at https://www.11ty.dev/docs/plugins/navigation/ #}
+      <nav>
+        <h2 class="visually-hidden">Top level navigation menu</h2>
+        <ul class="nav">
+          {# Home link (controlled by theme config) #}
+          {% if theme and theme.navigation and theme.navigation.showHomeLink %}
+            <li class="nav-item">
+              <a href="/" {% if page.url == "/" %}aria-current="page"{% endif %}>Home</a>
+            </li>
+          {% endif %}
+          {%- for entry in collections.all | eleventyNavigation %}
+            <li class="nav-item">
+              <a
+                href="{{ entry.url | safeUrl }}"
+                {% if entry.url == page.url %}aria-current="page"{% endif %}
+                >{{ entry.title | escapeHtml }}</a
+              >
+            </li>
+          {%- endfor %}
+        </ul>
+      </nav>
 
-		{# Page-specific JavaScript features (opt-in via front matter) #}
-		{% if pageFeature %}
-			<script type="module" src="/{{ pageFeature }}.js"></script>
-		{% endif %}
-		{% if pageFeatures %}
-			{% for feature in pageFeatures %}
-				<script type="module" src="/{{ feature }}.js"></script>
-			{% endfor %}
-		{% endif %}
-	</body>
+      {# Dark mode toggle #}
+      {% include "partials/theme/toggle.njk" %}
+    </header>
+
+    <main id="main">
+      <heading-anchors> {{ content | safe }} </heading-anchors>
+    </main>
+
+    <footer>
+      {# Footer navigation: secondary menu (left) and social links (right) #}
+      <div class="footer-nav">
+        {# Secondary footer menu (T&Cs, Privacy, etc.) #}
+        {% include "partials/footer/menu.njk" %}
+
+        {# Social links #}
+        {% include "partials/social/links.njk" %}
+      </div>
+
+      <div class="footer-bottom">
+        {# Copyright #}
+        {% include "partials/footer/copyright.njk" %}
+
+        {# Powered by Eleventy #}
+        {% include "partials/footer/powered-by.njk" %}
+
+        {# Git SHA #}
+        {% include "partials/footer/git-sha.njk" %}
+      </div>
+    </footer>
+
+    {% if build.timestamp %}<!-- This page `{{ page.url | escapeHtml }}` was built on {{ build.timestamp | escapeHtml }} -->{% endif %}
+
+    {# Global JavaScript - Vite will process and bundle #}
+    {# User's main.js imports theme styles/scripts #}
+    <script type="module" src="/assets/scripts/main.js"></script>
+
+    {# Page-specific JavaScript features (opt-in via front matter) #}
+    {# Supports both single feature string and array of features #}
+    {% if features %}
+      {% if features is string %}
+        {% set safeName = features | safeFeatureName %}
+        {% if safeName %}<script type="module" src="/{{ safeName }}.js"></script>{% endif %}
+      {% else %}
+        {% for f in features %}
+          {% set safeName = f | safeFeatureName %}
+          {% if safeName %}<script type="module" src="/{{ safeName }}.js"></script>{% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+  </body>
 </html>

@@ -2,41 +2,62 @@
 layout: base.njk
 ---
 
-<h1>{{ title }}</h1>
+{# Breadcrumb navigation (if page has eleventyNavigation.key) #}
+{%- if eleventyNavigation and eleventyNavigation.key -%}
+  {%- set breadcrumbItems = collections.all | eleventyNavigationBreadcrumb(eleventyNavigation.key) -%}
+  {%- if breadcrumbItems.length -%}
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="/">Home</a></li>
+        {%- for entry in breadcrumbItems %}
+          <li><a href="{{ entry.url | safeUrl }}">{{ entry.title | escapeHtml }}</a></li>
+        {%- endfor %}
+        <li aria-current="page">{{ title | escapeHtml }}</li>
+      </ol>
+    </nav>
+  {%- endif -%}
+{%- endif -%}
+
+<h1>{{ title | escapeHtml }}</h1>
 
 <ul class="post-metadata">
-	<li>
-		<time datetime="{{ page.date |dateToFormat('yyyy-LL-dd') }}"
-			>{{ page.date | dateToFormat("LLLL yyyy") }}</time
-		>
-	</li>
-	{%- for tag in tags | filterTagList %}
-		{%- set tagUrl %}/tags/{{ tag | slugify }}/{% endset %}
-		<li>
-			<a href="{{ tagUrl }}" class="post-tag">{{ tag }}</a
-			>{%- if not loop.last %},{% endif %}
-		</li>
-	{%- endfor %}
+  <li>
+    <time datetime="{{ page.date |dateToFormat('yyyy-LL-dd') }}"
+      >{{ page.date | dateToFormat("LLLL yyyy") }}</time
+    >
+  </li>
+  {%- for tag in tags | filterTagList %}
+    {%- set tagUrl %}/tags/{{ tag | slugify }}/{% endset %}
+    <li>
+      <a href="{{ tagUrl | safeUrl }}" class="post-tag">{{ tag | formatTag }}</a
+      >{%- if not loop.last %},{% endif %}
+    </li>
+  {%- endfor %}
 </ul>
 
 {{ content | safe }}
 
 {%- if collections.posts %}
-	{%- set previousPost = collections.posts | getPreviousCollectionItem %}
-	{%- set nextPost = collections.posts | getNextCollectionItem %}
-	{%- if nextPost or previousPost %}
-		<ul class="links-nextprev">
-			{%- if previousPost %}
-				<li class="links-nextprev-prev">
-					← Previous<br />
-					<a href="{{ previousPost.url }}">{{ previousPost.data.title }}</a>
-				</li>
-			{% endif %}
-			{%- if nextPost %}
-				<li class="links-nextprev-next">
-					Next →<br /><a href="{{ nextPost.url }}">{{ nextPost.data.title }}</a>
-				</li>
-			{% endif %}
-		</ul>
-	{%- endif %}
+  {%- set previousPost = collections.posts | getPreviousCollectionItem %}
+  {%- set nextPost = collections.posts | getNextCollectionItem %}
+  {%- if nextPost or previousPost %}
+    <ul class="links-nextprev">
+      {%- if previousPost %}
+        <li class="links-nextprev-prev">
+          ← Previous<br />
+          <a href="{{ previousPost.url | safeUrl }}">{{ previousPost.data.title | escapeHtml }}</a>
+        </li>
+      {% endif %}
+      {%- if nextPost %}
+        <li class="links-nextprev-next">
+          Next →<br /><a href="{{ nextPost.url | safeUrl }}"
+            >{{ nextPost.data.title | escapeHtml }}</a
+          >
+        </li>
+      {% endif %}
+    </ul>
+  {%- endif %}
 {%- endif %}
+
+{# Comments section #}
+{% include "partials/comments/index.njk" %}

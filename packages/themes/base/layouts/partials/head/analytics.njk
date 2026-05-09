@@ -1,0 +1,30 @@
+{#
+  Analytics partial
+  Supports Google Analytics and Plausible
+#}
+{% if theme and theme.analytics %}
+  {# Google Analytics #}
+  {% if theme.analytics.googleAnalytics %}
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id={{ theme.analytics.googleAnalytics | escapeAttr }}"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+      gtag('config', '{{ theme.analytics.googleAnalytics | escapeJsString }}');
+    </script>
+  {% endif %}
+
+  {# Plausible Analytics #}
+  {% if theme.analytics.plausible %}
+    <script
+      defer
+      data-domain="{{ theme.analytics.plausible | escapeAttr }}"
+      src="https://plausible.io/js/script.js"
+    ></script>
+  {% endif %}
+{% endif %}

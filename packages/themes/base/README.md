@@ -1,232 +1,164 @@
-# @eleventy-themes/base-blog
+# @eleventy-plugin-themer/theme-base
 
-A complete blog theme built on `@eleventy-themes/core` with self-describing metadata, cascade system, and extensible features.
-
-**Version 2.0.0** - Convention-based architecture with monorepo structure
+A blog theme for Eleventy built on `@eleventy-plugin-themer/core`. A port of [eleventy-base-blog](https://github.com/11ty/eleventy-base-blog) with dark mode, configurable styling, and extensible features.
 
 ## Features
 
-- **Self-Describing** - Theme exports its own metadata
-- **@theme Alias** - Clean imports in layouts and scripts
-- **Cascade System** - User files override theme files
-- **Extensible Features** - Self-contained feature folders
-- **Configurable Paths** - Content repo controls structure
-- **Smart Validation** - Helpful errors with suggested fixes
-- **CSS Custom Properties** - Easy theming via CSS variables
-
-Built on **@eleventy-themes/core** for build-agnostic cascade resolution.
+- **Cascade System** - User files override theme files (layouts, data, assets, features)
+- **@theme Alias** - Clean imports in Nunjucks templates: `{% extends "@theme/layouts/base.njk" %}`
+- **Dark Mode** - Configurable light/dark toggle with system preference support
+- **Extensible Features** - Self-contained feature modules loaded per-page via front matter
+- **CSS Custom Properties** - Easy theming via variables for colors, typography, spacing
+- **Configurable** - Override theme defaults via `content/_data/theme.js`
 
 ## Installation
 
 ```bash
-npm install @eleventy-themes/core @eleventy-themes/base-blog
+npm install @eleventy-plugin-themer/core @eleventy-plugin-themer/theme-base @11ty/eleventy-plugin-syntaxhighlight
 ```
 
-**Optional:** Install `@eleventy-themes/vite` for production optimizations:
-```bash
-npm install -D @eleventy-themes/vite
-```
+With Vite build optimizations:
 
-**Peer Dependencies:**
 ```bash
-npm install @11ty/eleventy luxon
+npm install -D @eleventy-plugin-themer/build-vite @11ty/eleventy-plugin-vite
 ```
 
 ## Quick Start
 
-### Minimal Setup (No Build Optimizations)
+```js
+// eleventy.config.mjs
+import { eleventyPluginThemer, generateDirConfig } from '@eleventy-plugin-themer/core';
 
-**File:** `eleventy.config.js`
+const THEME_NAME = '@eleventy-plugin-themer/theme-base';
 
-```javascript
-import { plugin as baseBlogTheme } from '@eleventy-themes/base-blog';
+export default async function (eleventyConfig) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default function (eleventyConfig) {
-  eleventyConfig.addPlugin(baseBlogTheme);
-
-  return {
-    dir: {
-      input: 'content',
-      output: '_site',
-    },
-  };
-}
-```
-
-### With Vite Optimizations
-
-**File:** `eleventy.config.js`
-
-```javascript
-import { plugin as baseBlogTheme } from '@eleventy-themes/base-blog';
-import { EleventyVitePlugin } from '@11ty/eleventy-plugin-vite';
-import { createThemeViteConfig } from '@eleventy-themes/vite';
-
-export default function (eleventyConfig) {
-  eleventyConfig.addPlugin(baseBlogTheme);
-
-  eleventyConfig.addPlugin(EleventyVitePlugin, {
-    viteOptions: createThemeViteConfig({
-      optimizations: {
-        purgeCSS: true,
-        criticalCSS: true,
-        minifyHTML: true,
-      },
-    }),
+  await eleventyConfig.addPlugin(eleventyPluginThemer, {
+    theme: THEME_NAME,
+    projectRoot: __dirname,
   });
 
   return {
-    dir: {
+    ...generateDirConfig({
+      theme: THEME_NAME,
+      projectRoot: __dirname,
       input: 'content',
       output: '_site',
-    },
+    }),
   };
 }
 ```
 
-### Create Content
-
-**File:** `content/index.md`
-
-```markdown
----
-layout: home
-title: My Blog
----
-
-# Welcome!
-```
-
-### 4. Run
-
-```bash
-npm run dev
-```
-
-✅ **That's it!** You now have a working site.
-
----
+See the [eleventy-starter](https://github.com/artislismanis/eleventy-starter) repository for a complete working example.
 
 ## Project Structure
 
 ```
 your-project/
-├── eleventy.config.js     # Theme configuration
-├── content/               # Your content
+├── eleventy.config.mjs   # Theme + plugin configuration
+├── content/              # Your content
 │   ├── index.md
 │   ├── posts/
 │   └── _data/
-│       └── site.js       # Override theme defaults
+│       ├── site.js       # Site metadata
+│       └── theme.js      # Theme config overrides
 ├── overrides/            # Customizations
 │   ├── layouts/          # Override/extend theme layouts
-│   ├── features/         # Custom features
-│   ├── scripts/          # Your JavaScript
+│   ├── features/         # Custom or overridden features
+│   ├── scripts/
+│   │   └── main.js       # Your JavaScript entry point
 │   └── styles/           # Your styles
 └── public/               # Static assets (favicon, etc.)
 ```
 
----
+## Theme Configuration
 
-## Core Concepts
+Override theme defaults by creating `content/_data/theme.js`:
 
-### 1. Cascade Resolution
-
-**User always wins.** For every resource type, user files take precedence:
-
-| Resource | User Path | Theme Path | Winner |
-|----------|-----------|------------|--------|
-| Layouts | `overrides/layouts/` | `layouts/` | User |
-| Features | `overrides/features/` | `features/` | User |
-| Data | `content/_data/` | `data/` | User |
-| Assets | `public/` | `public/` | User |
-
-### 2. @theme Alias
-
-**In Nunjucks templates** (works without build tools):
-
-The `@theme` alias works automatically via `@eleventy-themes/core`:
-
-```nunjucks
-{% extends "@theme/layouts/base.njk" %}
+```js
+export default {
+  themeToggle: {
+    defaultTheme: 'auto', // 'auto', 'light', or 'dark'
+    showToggle: true,
+  },
+  colors: {
+    light: {
+      background: '#ffffff',
+      primary: '#172c51',
+      accent: '#ca7033',
+      text: '#172c51',
+      link: '#5b9bd5',
+    },
+    dark: {
+      background: '#0f172a',
+      primary: '#5b9bd5',
+      accent: '#ca7033',
+      text: '#e2e8f0',
+      link: '#5b9bd5',
+    },
+  },
+  typography: {
+    fontFamily: '-apple-system, system-ui, sans-serif',
+    fontFamilyHeading: 'inherit',
+    fontFamilyMono: "'Consolas', 'Monaco', monospace",
+  },
+  logos: {
+    default: '',
+    dark: '',
+    favicon: '/favicon.svg',
+  },
+  social: [],
+  footer: {
+    copyright: '{year} {site.title}',
+    showPoweredBy: true,
+  },
+};
 ```
 
-**In JavaScript/SCSS** (requires build tool with alias support):
-
-With Vite or another build tool configured with alias resolution:
-
-```javascript
-// With @eleventy-themes/vite or custom alias config
-import { init } from '@theme/features/code-highlighting/index.js';
-```
-
-```scss
-@use '@theme/styles/variables';
-```
-
-Without a build tool, use the package name directly:
-
-```javascript
-// Build-agnostic approach
-import { init } from '@eleventy-themes/base-blog/features/code-highlighting/index.js';
-```
-
-### 3. Features
-
-Features are self-contained, optional functionality modules. Each feature lives in its own folder with JavaScript, styles, and assets colocated.
-
----
+All config values are deeply merged with the theme's defaults from `theme.json`. Use `null` to explicitly clear a value.
 
 ## Customization
 
 ### Override Layouts
 
-**Replace** a theme layout by creating a file with the same name:
+Replace a theme layout:
 
-**File:** `overrides/layouts/post.njk`
 ```nunjucks
-{# Completely replaces theme's post.njk #}
+{# overrides/layouts/post.njk - completely replaces theme's post.njk #}
 <article>
   <h1>{{ title }}</h1>
   {{ content | safe }}
 </article>
 ```
 
-**Extend** a theme layout using `@theme`:
+Extend a theme layout:
 
-**File:** `overrides/layouts/custom.njk`
 ```nunjucks
+{# overrides/layouts/custom.njk #}
 {% extends "@theme/layouts/base.njk" %}
 
 {% block content %}
-  <div class="custom">
-    {{ content | safe }}
-  </div>
+  <div class="custom">{{ content | safe }}</div>
 {% endblock %}
 ```
 
 ### Override Data
 
-Create a file with the same name in `content/_data/`:
+Create `content/_data/site.js` to replace theme's site data:
 
-**File:** `content/_data/site.js`
-```javascript
+```js
 export default {
-  title: 'My Awesome Blog',
-  description: 'Thoughts on web development',
+  title: 'My Blog',
   url: 'https://myblog.com',
   language: 'en',
-  author: {
-    name: 'Your Name',
-    email: 'you@example.com',
-  },
+  author: { name: 'Your Name', email: 'you@example.com' },
 };
 ```
 
-This **completely replaces** the theme's `data/site.js`.
-
 ### Override Static Assets
 
-Place a file with the same name in `public/`:
+Place files in `public/` to override theme assets:
 
 ```
 public/
@@ -234,262 +166,144 @@ public/
 └── logo.png          # Your custom asset
 ```
 
-### CSS Custom Properties
-
-Override theme variables in your styles:
-
-**File:** `overrides/styles/custom.scss`
-```scss
-:root {
-  // Override code highlighting
-  --code-bg: #2d2d2d;
-  --code-fg: #f8f8f2;
-  --code-copy-button-bg: rgba(139, 233, 253, 0.2);
-}
-```
-
-See [CSS Custom Properties](#css-custom-properties-reference) for full list.
-
----
-
 ## Features
 
-Features are **optional functionality modules** that can be loaded per-page via front matter. Each feature is self-contained in its own folder.
+Features are optional functionality modules loaded per-page via front matter.
 
-### Using Theme Features
+### Using Features
 
-**Zero-config** - just add to front matter:
+Add to any page's front matter:
 
 ```yaml
 ---
 title: My Post
-pageFeature: code-highlighting.auto
----
-```
-
-**With customization:**
-
-**File:** `overrides/features/code-highlighting/index.js`
-```javascript
-// Build-agnostic approach
-import { init, defaultConfig } from '@eleventy-themes/base-blog/features/code-highlighting/index.js';
-
-// Or with build tool alias support (Vite, etc.)
-// import { init, defaultConfig } from '@theme/features/code-highlighting/index.js';
-
-init({
-  ...defaultConfig,
-  lineNumbers: true,
-  onCopy: (text) => {
-    console.log('Code copied!');
-  },
-});
-```
-
-**Front matter:**
-```yaml
----
-pageFeature: code-highlighting
----
-```
-
-### Creating Custom Features
-
-**File:** `overrides/features/my-feature/index.js`
-```javascript
-console.log('My custom feature');
-
-export function init() {
-  // Your code
-}
-
-init();
-```
-
-**Front matter:**
-```yaml
----
-pageFeature: my-feature
+feature: code-highlighting
 ---
 ```
 
 ### Available Theme Features
 
-- **code-highlighting** - Copy button, line numbers, syntax highlighting support
+#### code-highlighting
 
+Syntax highlighting powered by PrismJS (via `@11ty/eleventy-plugin-syntaxhighlight`). Includes copy button, optional line numbers, diff highlighting, and custom scrollbar.
+
+**Usage** — add to any page's front matter:
+
+```yaml
 ---
-
-## API
-
-### Plugin Export
-
-The main export is an Eleventy plugin created using `@eleventy-themes/core`:
-
-```javascript
-import { plugin as baseBlogTheme } from '@eleventy-themes/base-blog';
-
-export default function (eleventyConfig) {
-  eleventyConfig.addPlugin(baseBlogTheme);
-}
-```
-
-### Additional Exports
-
-```javascript
-import {
-  plugin,      // Eleventy plugin
-  metadata,    // Theme metadata from theme.json
-  filters,     // Nunjucks filters
-  shortcodes,  // Nunjucks shortcodes
-  transforms,  // Eleventy transforms
-} from '@eleventy-themes/base-blog';
-```
-
-### Theme Metadata
-
-Access theme metadata programmatically:
-
-```javascript
-import { metadata } from '@eleventy-themes/base-blog';
-
-console.log(metadata.name);     // '@eleventy-themes/base-blog'
-console.log(metadata.version);  // '2.0.0'
-console.log(metadata.paths);    // Theme paths configuration
-```
-
-For detailed cascade API documentation, see [@eleventy-themes/core](../core/README.md).
-
+feature: code-highlighting
 ---
-
-## CSS Custom Properties Reference
-
-### Code Highlighting Bundle
-
-```css
-:root {
-  /* Colors */
-  --code-bg: #1e1e1e;
-  --code-fg: #d4d4d4;
-
-  /* Typography */
-  --code-font-family: 'Fira Code', 'Consolas', monospace;
-  --code-font-size: 0.875rem;
-  --code-line-height: 1.6;
-
-  /* Spacing & Shape */
-  --code-border-radius: 0.5rem;
-  --code-padding: 1rem;
-  --code-margin: 1.5rem 0;
-
-  /* Copy Button */
-  --code-copy-button-bg: rgba(255, 255, 255, 0.1);
-  --code-copy-button-fg: #fff;
-  --code-copy-button-hover-bg: rgba(255, 255, 255, 0.2);
-  --code-copy-button-padding: 0.375rem 0.75rem;
-  --code-copy-button-font-size: 0.75rem;
-
-  /* Line Numbers */
-  --code-line-number-fg: rgba(255, 255, 255, 0.3);
-  --code-line-number-width: 3rem;
-
-  /* Scrollbar */
-  --code-scrollbar-height: 8px;
-  --code-scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
-}
 ```
 
----
+**Configuration** — override in `content/_data/theme.js`:
 
-## Advanced Configuration
-
-### Custom Override Paths
-
-If your content repo has a different structure:
-
-```javascript
-theme.init(eleventyConfig, {
-  projectRoot: __dirname,
-  overridePaths: {
-    layouts: 'src/layouts',
-    bundles: 'src/bundles',
-    scripts: 'src/scripts',
-    styles: 'src/styles',
-    data: 'content/_data',
-    public: 'public',
+```js
+export default {
+  codeHighlighting: {
+    prismTheme: 'prism-tomorrow', // PrismJS theme name (default)
+    diffHighlight: true, // Include diff-highlight plugin (default)
   },
-});
+};
 ```
 
-The theme will look for files in your custom locations.
+**Available PrismJS themes:**
 
-### Using Without Vite
+| Theme                  | Style                                   |
+| ---------------------- | --------------------------------------- |
+| `prism`                | Light, minimal (Lea Verou's default)    |
+| `prism-coy`            | Light with subtle left border           |
+| `prism-solarizedlight` | Light, Solarized palette                |
+| `prism-dark`           | Dark, muted tones                       |
+| `prism-funky`          | Dark with coloured line backgrounds     |
+| `prism-okaidia`        | Dark, Monokai-inspired                  |
+| `prism-tomorrow`       | Dark, Tomorrow Night Eighties (default) |
+| `prism-twilight`       | Dark, warm greys                        |
 
-You can use the theme without Vite by manually configuring Eleventy:
+**Diff highlighting** — use the `diff-` language prefix with `+`/`-` line markers:
 
-```javascript
-import theme from 'eleventy-base-blog-template';
+````markdown
+```diff-js
++const added = true;
+-const removed = false;
+ const unchanged = null;
+```
+````
 
-export default function(eleventyConfig) {
-  theme.init(eleventyConfig, { projectRoot: __dirname });
+**CSS custom properties** — enhancements on top of PrismJS (override in your own CSS):
 
-  // Manual passthrough
-  eleventyConfig.addPassthroughCopy('public');
+| Property                    | Default                  | Description                   |
+| --------------------------- | ------------------------ | ----------------------------- |
+| `--code-border-radius`      | `0.5rem`                 | Border radius for code blocks |
+| `--code-copy-button-bg`     | `var(--color-surface)`   | Copy button background        |
+| `--code-copy-button-fg`     | `var(--color-text)`      | Copy button text colour       |
+| `--code-line-number-fg`     | `rgb(255 255 255 / 30%)` | Line number colour            |
+| `--code-line-number-width`  | `3rem`                   | Line number column width      |
+| `--code-scrollbar-thumb-bg` | `rgb(255 255 255 / 20%)` | Scrollbar thumb colour        |
 
-  // Your build setup...
-}
+### Creating Custom Features
+
+Create `overrides/features/my-feature/index.js` (or `index.auto.js` for auto-initialization):
+
+```js
+// index.auto.js - auto-initializes when loaded
+console.log('My custom feature loaded');
 ```
 
-**Note:** You'll lose auto-import and bundle features.
+Then reference in front matter: `feature: my-feature`
 
+### Overriding Theme Features
+
+Create `overrides/features/code-highlighting/index.auto.js` to replace the theme's version.
+
+## Shortcodes
+
+### Hero Section
+
+```nunjucks
+{% hero title="Welcome", subtitle="Build beautiful websites", align="center", height="400px" %}
+  {% heroButton url="/start", variant="primary" %}Get Started{% endheroButton %}
+  {% heroButton url="/learn", variant="secondary" %}Learn More{% endheroButton %}
+{% endhero %}
+```
+
+| Parameter         | Description                               | Default    |
+| ----------------- | ----------------------------------------- | ---------- |
+| `title`           | Main heading                              | -          |
+| `subtitle`        | Secondary text                            | -          |
+| `background`      | Background image URL                      | -          |
+| `backgroundColor` | Background color (fallback)               | -          |
+| `align`           | Text alignment: `left`, `center`, `right` | `'center'` |
+| `height`          | Minimum height                            | `'auto'`   |
+| `overlay`         | Dark overlay on background image          | `true`     |
+
+### Content Grid
+
+```nunjucks
+{% contentGrid cols=3, gap="1.5rem" %}
+  {% box title="Feature 1", link="/about", linkText="Learn More" %}
+    Description of feature 1.
+  {% endbox %}
+{% endcontentGrid %}
+```
+
+## Navigation
+
+Uses `@11ty/eleventy-navigation` for menus. Add pages via front matter:
+
+```yaml
 ---
-
-## Troubleshooting
-
-### "Theme package not found"
-
-**Problem:** Can't find theme in node_modules
-
-**Solution:**
-```bash
-npm install eleventy-base-blog-template
-```
-
-### "No entry point found at overrides/scripts/main.js"
-
-**Problem:** Missing user entry point (warning, not error)
-
-**Solution:** Create the file:
-```bash
-mkdir -p overrides/scripts
-echo "console.log('Site loaded');" > overrides/scripts/main.js
-```
-
-### "Feature X not found"
-
-**Problem:** Front matter references non-existent feature
-
-**Solution:**
-- Check spelling: `code-highlighting.auto` (include `.auto` for zero-config)
-- Create the feature in `overrides/features/X/index.js`
-- See available features: check theme's `features/` directory
-
+eleventyNavigation:
+  key: About
+  order: 2
 ---
+```
 
-## Migration from v1
-
-See [MIGRATION.md](./MIGRATION.md) for detailed upgrade instructions.
-
-**Key Changes:**
-- Package renamed: `eleventy-base-blog-template` → `@eleventy-themes/base-blog`
-- Now uses `@eleventy-themes/core` for cascade system
-- Simpler plugin-based API
-- Bundles → Features (colocated structure)
-- Build optimizations moved to `@eleventy-themes/vite`
+Footer navigation uses `parent: footer`. Hierarchical pages get automatic breadcrumbs.
 
 ## Related Packages
 
-- [@eleventy-themes/core](../core/README.md) - Build-agnostic cascade system
-- [@eleventy-themes/vite](../vite/README.md) - Vite production optimizations
+- [@eleventy-plugin-themer/core](../../core/README.md) - Build-agnostic cascade system
+- [@eleventy-plugin-themer/build-vite](../../build/vite/README.md) - Vite production optimizations
 
 ## License
 

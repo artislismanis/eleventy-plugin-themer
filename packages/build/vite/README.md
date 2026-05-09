@@ -1,191 +1,126 @@
-# @eleventy-themes/vite
+# @eleventy-plugin-themer/build-vite
 
-Vite integration with production optimizations for Eleventy themes.
+Vite integration with production optimizations for Eleventy themes built with `@eleventy-plugin-themer/core`.
 
 ## Features
 
-- **PurgeCSS** - Remove unused CSS
-- **Critical CSS** - Inline critical CSS, async load rest (Critters)
-- **HTML Minification** - Minify HTML output
-- **Link Validation** - Validate internal links
-- **Non-HTML Preservation** - Preserve non-HTML files during build
-- **Flexible Usage** - Use built-in tools or swap with custom implementations
+- **Auto-Import** - Automatically imports theme styles and scripts into user entry points
+- **Feature Discovery** - Discovers and bundles theme features as Vite entry points
+- **PurgeCSS** - Removes unused CSS from production builds
+- **Critical CSS** - Inlines critical CSS and async loads the rest (via Critters)
+- **HTML Minification** - Minifies HTML output
+- **Link Validation** - Validates internal links and images after build
+- **Non-HTML Preservation** - Preserves files like RSS feeds and sitemaps
+- **Dev Server** - Serves feature scripts during development with HMR
 
 ## Installation
 
 ```bash
-npm install -D @eleventy-themes/vite
+npm install -D @eleventy-plugin-themer/build-vite @11ty/eleventy-plugin-vite
 ```
 
-**Optional peer dependencies** (install what you need):
+Optional peer dependencies (install based on optimizations you enable):
+
 ```bash
 npm install -D purgecss critters html-minifier-terser node-html-parser glob
 ```
 
 ## Usage
 
-### Option 1: Convenience Config
-
-Use `createThemeViteConfig()` with boolean flags:
-
 ```js
-// eleventy.config.js
-import { EleventyVitePlugin } from '@11ty/eleventy-plugin-vite';
-import { createThemeViteConfig } from '@eleventy-themes/vite';
+// eleventy.config.mjs
+import { eleventyPluginThemer, generateDirConfig } from '@eleventy-plugin-themer/core';
+import { eleventyPluginThemerVite } from '@eleventy-plugin-themer/build-vite';
 
-export default function (eleventyConfig) {
-  eleventyConfig.addPlugin(EleventyVitePlugin, {
-    viteOptions: createThemeViteConfig({
-      optimizations: {
-        purgeCSS: true,      // Use built-in PurgeCSS
-        criticalCSS: true,   // Use built-in Critters
-        minifyHTML: true,    // Use built-in minifier
-        validateLinks: true, // Use built-in validator
-        preserveNonHtml: true,
-      },
-      dirs: {
-        temp: '.11ty-vite',
-        output: '_site',
-      },
-    }),
+const THEME_NAME = '@eleventy-plugin-themer/theme-base';
+
+export default async function (eleventyConfig) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+  // Register core theme plugin
+  await eleventyConfig.addPlugin(eleventyPluginThemer, {
+    theme: THEME_NAME,
+    projectRoot: __dirname,
   });
-}
-```
 
-### Option 2: Custom Implementations
-
-Pass functions to use your own tools:
-
-```js
-import { createThemeViteConfig } from '@eleventy-themes/vite';
-import myCustomPurge from './my-purge.js';
-
-eleventyConfig.addPlugin(EleventyVitePlugin, {
-  viteOptions: createThemeViteConfig({
+  // Register Vite plugin with optimizations
+  await eleventyConfig.addPlugin(eleventyPluginThemerVite, {
+    theme: THEME_NAME,
+    projectRoot: __dirname,
     optimizations: {
-      purgeCSS: async () => {
-        await myCustomPurge();
-      },
-      criticalCSS: false,  // Skip this optimization
-      minifyHTML: true,    // Use built-in
-    },
-  }),
-});
-```
-
-### Option 3: Cherry-Pick Plugins
-
-Import and use individual plugins:
-
-```js
-import { purgeCSSFiles, generateCriticalCSS } from '@eleventy-themes/vite';
-
-export default {
-  plugins: [
-    {
-      name: 'my-optimizations',
-      apply: 'build',
-      async closeBundle() {
-        await purgeCSSFiles('_site');
-        await generateCriticalCSS('_site');
+      purgeCSS: true,
+      criticalCSS: true,
+      minifyHTML: true,
+      validateLinks: true,
+      preserveNonHtml: {
+        extensions: ['xml', 'txt', 'xsl'],
       },
     },
-  ],
-};
+  });
+
+  return {
+    ...generateDirConfig({
+      theme: THEME_NAME,
+      projectRoot: __dirname,
+      input: 'content',
+      output: '_site',
+    }),
+  };
+}
 ```
 
 ## API
 
-### `createThemeViteConfig(options)`
+### `eleventyPluginThemerVite(eleventyConfig, options)`
 
-Create Vite config with theme optimizations.
+Eleventy plugin that wraps `@11ty/eleventy-plugin-vite` with theme-aware configuration.
 
-**Parameters:**
-- `options` (Object) - Configuration options
-  - `optimizations` (Object) - Optimization settings
-    - `purgeCSS` (boolean | function) - PurgeCSS configuration
-    - `criticalCSS` (boolean | function) - Critical CSS configuration
-    - `minifyHTML` (boolean | function) - HTML minification configuration
-    - `validateLinks` (boolean | function) - Link validation configuration
-    - `preserveNonHtml` (boolean | function) - Non-HTML preservation configuration
-  - `dirs` (Object) - Directory configuration
-    - `temp` (string) - Temp directory (default: '.11ty-vite')
-    - `output` (string) - Output directory (default: '_site')
-  - `plugins` (Array) - Additional Vite plugins
-  - `...userConfig` - Any other Vite config options
+**Options:**
 
-**Returns:** Object - Vite configuration
+- `theme` (string, required) - Theme package name
+- `projectRoot` (string, required) - Project root path
+- `scriptsEntry` (string) - Main scripts entry point (default: `'overrides/scripts/main.js'`)
+- `tempFolderName` (string) - Vite temp folder name (default: `'.11ty-vite'`)
+- `overridePaths` (Object) - Override paths configuration
+- `viteOptions` (Object) - Additional Vite options to merge with theme defaults
+- `optimizations` (Object) - Production optimization toggles:
+  - `purgeCSS` (boolean | Object) - Remove unused CSS
+  - `criticalCSS` (boolean | Object) - Inline critical CSS
+  - `minifyHTML` (boolean | Object) - Minify HTML output
+  - `validateLinks` (boolean | Object) - Validate internal links
+  - `preserveNonHtml` (Object) - Preserve non-HTML files. Provide `{ extensions: ['xml', 'txt'] }`
+
+### `getFeatureEntries(projectRoot, themeMetadata, overridePaths?)`
+
+Returns Vite entry points for the main script and all discovered features. Used internally by `eleventyPluginThemerVite`, but available for advanced use cases.
 
 ### Individual Plugins
 
-#### `purgeCSSFiles(outputDir, options)`
+Optimization plugins can be imported individually for custom build pipelines:
 
-Remove unused CSS from all CSS files in output directory.
+```js
+import {
+  purgeCSSFiles,
+  generateCriticalCSS,
+  minifyHTML,
+  validateLinks,
+  preserveNonHtmlFiles,
+} from '@eleventy-plugin-themer/build-vite';
+```
 
-**Parameters:**
-- `outputDir` (string) - Output directory path
-- `options` (Object) - PurgeCSS options (optional)
+All follow the signature `(outputDir, options) => Promise<void>` and throw on failure.
 
-#### `generateCriticalCSS(outputDir, options)`
+## Logging
 
-Generate and inline critical CSS using Critters.
+Set `THEME_LOG_LEVEL` environment variable to control output verbosity:
 
-**Parameters:**
-- `outputDir` (string) - Output directory path
-- `options` (Object) - Critters options (optional)
-
-#### `minifyHTML(outputDir, options)`
-
-Minify all HTML files in output directory.
-
-**Parameters:**
-- `outputDir` (string) - Output directory path
-- `options` (Object) - html-minifier-terser options (optional)
-
-#### `validateLinks(outputDir, options)`
-
-Validate internal links in HTML files.
-
-**Parameters:**
-- `outputDir` (string) - Output directory path
-- `options` (Object) - Validation options (optional)
-  - `throwOnError` (boolean) - Throw if broken links found
-
-#### `validateLinksOrThrow(outputDir, options)`
-
-Same as `validateLinks` but always throws on broken links.
-
-#### `preserveNonHtmlFiles(tempDir, outputDir, options)`
-
-Preserve non-HTML files from temp to output directory.
-
-**Parameters:**
-- `tempDir` (string) - Temp directory path
-- `outputDir` (string) - Output directory path
-- `options` (Object) - Options (optional)
-
-## Philosophy
-
-**Opinionated defaults, full flexibility.** You can:
-
-1. Use built-in tools (pass `true`)
-2. Swap with custom implementation (pass `function`)
-3. Cherry-pick individual plugins
-4. Skip entirely and roll your own
-
-**Graceful degradation.** Optional peer dependencies allow you to install only what you need. If a peer dependency is missing, the plugin will warn but not fail.
-
-## Dependencies
-
-All optimization dependencies are **optional peer dependencies**:
-
-- `purgecss` - For PurgeCSS functionality
-- `critters` - For Critical CSS functionality
-- `html-minifier-terser` - For HTML minification
-- `node-html-parser` - For link validation
-- `glob` - For file discovery
-
-Install only what you need!
+```bash
+THEME_LOG_LEVEL=silent npx eleventy  # No theme output
+THEME_LOG_LEVEL=error npx eleventy   # Errors only
+THEME_LOG_LEVEL=warn npx eleventy    # Errors + warnings
+THEME_LOG_LEVEL=info npx eleventy    # Default
+THEME_LOG_LEVEL=debug npx eleventy   # Verbose
+```
 
 ## License
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "artislismanis/eleventy-plugin-themer" }],
+  "commit": false,
+  "fixed": [],
+  "linked": [
+    [
+      "@eleventy-plugin-themer/core",
+      "@eleventy-plugin-themer/build-vite",
+      "@eleventy-plugin-themer/theme-base"
+    ]
+  ],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}

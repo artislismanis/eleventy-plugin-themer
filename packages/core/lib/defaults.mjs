@@ -10,28 +10,13 @@
  * These define where the framework looks for user overrides of theme resources
  */
 export const DEFAULT_OVERRIDE_PATHS = {
-	layouts: 'overrides/layouts',
-	features: 'overrides/features',
-	styles: 'overrides/styles',
-	scripts: 'overrides/scripts',
-	data: 'content/_data',
-	public: 'public',
-};
-
-/**
- * Default cascade resolution order
- * "user-first" means user overrides take precedence over theme defaults
- */
-export const DEFAULT_CASCADE_RESOLUTION = 'user-first';
-
-/**
- * Framework capabilities
- * These are what the core framework supports, not what a specific theme provides
- */
-export const FRAMEWORK_CAPABILITIES = {
-	featureSystem: true,
-	dataCascade: true,
-	assetCascade: true,
+  layouts: 'overrides/layouts',
+  features: 'overrides/features',
+  styles: 'overrides/styles',
+  scripts: 'overrides/scripts',
+  lib: 'overrides/lib',
+  data: 'content/_data',
+  public: 'public',
 };
 
 /**
@@ -39,33 +24,37 @@ export const FRAMEWORK_CAPABILITIES = {
  * These are the conventional entry points for theme assets
  */
 export const DEFAULT_ASSET_ENTRIES = {
-	styles: 'styles/main.scss',
-	scripts: 'scripts/main.js',
+  styles: 'styles/main.scss',
+  scripts: 'scripts/main.js',
 };
 
 /**
- * Resolve override paths from theme metadata or user configuration
- *
- * Priority:
- * 1. User-provided overridePaths (explicit override)
- * 2. Theme's cascade.defaultOverridePaths (theme defaults)
- * 3. Framework DEFAULT_OVERRIDE_PATHS (framework defaults)
- *
- * @param {Object} themeMetadata - Theme metadata object
- * @param {Object} [overridePaths] - Optional user-provided override paths
- * @returns {Object} Resolved override paths
+ * Feature conventions
+ * These define the standard filenames for features
  */
-export function resolveOverridePaths(themeMetadata, overridePaths = {}) {
-	// If user provides explicit paths, use those
-	if (overridePaths && Object.keys(overridePaths).length > 0) {
-		return overridePaths;
-	}
+export const FEATURE_CONVENTIONS = {
+  autoInit: 'index.auto.js',
+  entry: 'index.js',
+};
 
-	// Otherwise try theme's defaults
-	if (themeMetadata?.cascade?.defaultOverridePaths) {
-		return themeMetadata.cascade.defaultOverridePaths;
-	}
-
-	// Fall back to framework defaults
-	return DEFAULT_OVERRIDE_PATHS;
+/**
+ * Resolve override paths by merging theme and user configuration over framework defaults.
+ *
+ * Priority order (lowest to highest):
+ * 1. Framework defaults (DEFAULT_OVERRIDE_PATHS)
+ * 2. Theme-specific defaults (from themeMetadata.cascade.defaultOverridePaths)
+ * 3. User-provided overrides
+ *
+ * @param {Object} [themeMetadata] - Optional theme metadata object (may contain cascade.defaultOverridePaths).
+ * @param {Object} [userOverridePaths] - Optional user-provided override paths.
+ * @returns {Object} Resolved override paths.
+ */
+export function resolveOverridePaths(themeMetadata = {}, userOverridePaths = {}) {
+  // Extract theme-specific defaults from cascade config (if present)
+  const themeDefaults = themeMetadata?.cascade?.defaultOverridePaths || {};
+  return {
+    ...DEFAULT_OVERRIDE_PATHS,
+    ...themeDefaults,
+    ...userOverridePaths,
+  };
 }

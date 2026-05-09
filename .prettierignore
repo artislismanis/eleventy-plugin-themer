@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+_site/
+dist/
+
+# Coverage
+coverage/
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Generated files
+*.min.js
+*.min.css
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# AI agent instructions
+AGENTS.md
+CLAUDE.md

@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Eleventy Theme Framework theme.json",
+  "description": "Schema for the theme.json file in the Eleventy Theme Framework.",
+  "type": "object",
+  "properties": {
+    "layouts": {
+      "description": "A list of layout files provided by the theme, used for aliasing.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" }
+        },
+        "required": ["name", "path"]
+      }
+    },
+    "themeFeatures": {
+      "description": "A list of self-contained JavaScript features provided by the theme.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "entry": { "type": "string" }
+        },
+        "required": ["name", "entry"]
+      }
+    },
+    "build": {
+      "description": "Build-time configuration hints for optimization plugins.",
+      "type": "object",
+      "properties": {
+        "purgeCSS": {
+          "type": "object",
+          "properties": {
+            "safelist": {
+              "description": "PurgeCSS safelist patterns to preserve. Strings are converted to RegExp at build time.",
+              "type": "object",
+              "properties": {
+                "standard": { "type": "array", "items": { "type": "string" } },
+                "deep": { "type": "array", "items": { "type": "string" } },
+                "greedy": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assets": {
+      "description": "Theme asset entry points for styles and scripts.",
+      "type": "object",
+      "properties": {
+        "styles": {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "description": "Path to the main stylesheet entry point (relative to theme root).",
+              "type": "string",
+              "default": "styles/main.scss"
+            }
+          }
+        },
+        "scripts": {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "description": "Path to the main JavaScript entry point (relative to theme root).",
+              "type": "string",
+              "default": "scripts/main.js"
+            }
+          }
+        }
+      }
+    },
+    "config": {
+      "description": "Theme configuration options. Users override via content/_data/theme.js.",
+      "type": "object",
+      "properties": {
+        "codeHighlighting": {
+          "description": "Code highlighting configuration (PrismJS theme and diff support).",
+          "type": "object",
+          "properties": {
+            "prismTheme": {
+              "description": "PrismJS theme name (without .css extension).",
+              "type": "string",
+              "enum": [
+                "prism",
+                "prism-coy",
+                "prism-dark",
+                "prism-funky",
+                "prism-okaidia",
+                "prism-solarizedlight",
+                "prism-tomorrow",
+                "prism-twilight"
+              ],
+              "default": "prism-tomorrow"
+            },
+            "diffHighlight": {
+              "description": "Include PrismJS diff-highlight plugin CSS for added/removed line highlighting.",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "passthroughCopy": {
+      "description": "Configuration for files to be passed through Eleventy's copy mechanism.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

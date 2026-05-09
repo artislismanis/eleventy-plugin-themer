@@ -1,0 +1,12 @@
+{#
+  Copyright partial
+  Supports placeholders: {year}, {site.title}
+  If startYear is configured, shows range: "2024-2026"
+#}
+{% if theme and theme.footer and theme.footer.copyright %}
+  {% set startYear = theme.footer.startYear %}
+  {% set year = startYear | copyrightYear %}
+  <p class="copyright">
+    {{ theme.footer.copyright | replace("{year}", year) | replace("{site.title}", site.title) | escapeHtml }}
+  </p>
+{% endif %}

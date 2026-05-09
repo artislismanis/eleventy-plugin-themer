@@ -1,40 +1,53 @@
 {
-	"name": "@eleventy-plugin-themer/core",
-	"version": "3.0.0",
-	"description": "Build-agnostic core cascade system for Eleventy themes",
-	"type": "module",
-	"main": "lib/index.mjs",
-	"exports": {
-		".": "./lib/index.mjs",
-		"./cascade": "./lib/cascade/index.mjs",
-		"./template-loader": "./lib/template-loader.mjs",
-		"./validate": "./lib/validate.mjs"
-	},
-	"files": [
-		"lib/",
-		"README.md",
-		"LICENSE"
-	],
-	"keywords": [
-		"eleventy",
-		"eleventy-theme",
-		"11ty",
-		"cascade",
-		"theme-system",
-		"build-agnostic"
-	],
-	"author": "Artis Lismanis",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
-		"directory": "packages/core"
-	},
-	"peerDependencies": {
-		"@11ty/eleventy": "^3.1.0",
-		"nunjucks": "^3.2.0"
-	},
-	"engines": {
-		"node": ">=22"
-	}
+  "name": "@eleventy-plugin-themer/core",
+  "version": "3.0.0",
+  "description": "Build-agnostic core cascade system for Eleventy themes",
+  "type": "module",
+  "main": "lib/index.mjs",
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./logger": "./lib/logger.mjs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "files": [
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "eleventy",
+    "eleventy-theme",
+    "11ty",
+    "cascade",
+    "theme-system",
+    "build-agnostic"
+  ],
+  "author": "Artis Lismanis",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/artislismanis/eleventy-plugin-themer/issues"
+  },
+  "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/core#readme",
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@11ty/eleventy": "^3.1.0",
+    "nunjucks": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

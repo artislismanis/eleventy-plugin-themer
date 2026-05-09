@@ -10,175 +10,155 @@ import { existsSync } from 'fs';
 
 import { glob } from 'glob';
 import { parse } from 'node-html-parser';
+import { logger } from '@eleventy-plugin-themer/core/logger';
+
+import { GLOB_PATTERNS } from '../utils/constants.mjs';
 
 /**
- * Validate links and images in built HTML
- * @param {string} outputDir - Output directory to validate
- * @param {Object} options - Validation options
- * @param {boolean} options.throwOnError - Throw error if validation fails
- * @returns {Promise<{valid: boolean, errors: Array}>}
+ * Check resources (links or images) in parsed HTML for broken references
+ *
+ * @param {Object} root - Parsed HTML root from node-html-parser
+ * @param {Object} options
+ * @param {string} options.selector - CSS selector (e.g., 'a[href]', 'img[src]')
+ * @param {string} options.attribute - Attribute to check (e.g., 'href', 'src')
+ * @param {string[]} options.skipPrefixes - URL prefixes to skip
+ * @param {string} options.errorType - Error type label (e.g., 'broken-link', 'missing-image')
+ * @param {string} options.errorPrefix - Error message prefix
+ * @param {string} options.outputDir - Build output directory
+ * @param {string} options.baseDir - Directory of the HTML file
+ * @param {string} options.relativePath - Relative path of the HTML file
+ * @returns {{ count: number, errors: Array }}
  */
-export async function validateLinks(outputDir = '_site', options = {}) {
-	console.log('\n🔗 Validating links and images...\n');
+function checkResources(root, options) {
+  const {
+    selector,
+    attribute,
+    skipPrefixes,
+    errorType,
+    errorPrefix,
+    outputDir,
+    baseDir,
+    relativePath,
+  } = options;
 
-	const htmlFiles = await glob(`${outputDir}/**/*.html`);
+  const elements = root.querySelectorAll(selector);
+  const errors = [];
+  let count = 0;
 
-	const errors = [];
-	let totalLinks = 0;
-	let totalImages = 0;
+  for (const el of elements) {
+    const value = el.getAttribute(attribute);
+    if (!value || skipPrefixes.some((prefix) => value.startsWith(prefix))) {
+      continue;
+    }
 
-	for (const htmlFile of htmlFiles) {
-		try {
-			const html = await fs.readFile(htmlFile, 'utf-8');
-			const root = parse(html);
+    count++;
 
-			const relativePath = path.relative(outputDir, htmlFile);
-			const baseDir = path.dirname(htmlFile);
+    const cleanValue = value.split('#')[0].split('?')[0];
 
-			// Check internal links
-			const links = root.querySelectorAll('a[href]');
-			for (const link of links) {
-				const href = link.getAttribute('href');
+    let targetPath;
+    if (cleanValue.startsWith('/')) {
+      targetPath = path.join(outputDir, cleanValue);
+    } else {
+      targetPath = path.join(baseDir, cleanValue);
+    }
 
-				// Skip external links, anchors, mailto, tel, etc
-				if (
-					!href ||
-					href.startsWith('http://') ||
-					href.startsWith('https://') ||
-					href.startsWith('mailto:') ||
-					href.startsWith('tel:') ||
-					href.startsWith('#')
-				) {
-					continue;
-				}
+    const fileExists = existsSync(targetPath);
+    const indexExists = !fileExists && existsSync(path.join(targetPath, 'index.html'));
 
-				totalLinks++;
+    if (!fileExists && !indexExists) {
+      errors.push({
+        file: relativePath,
+        type: errorType,
+        target: value,
+        message: `${errorPrefix}: ${value}`,
+      });
+    }
+  }
 
-				// Remove hash/query for file check
-				const cleanHref = href.split('#')[0].split('?')[0];
-
-				// Resolve to filesystem path
-				let targetPath;
-				if (cleanHref.startsWith('/')) {
-					// Absolute path from site root
-					targetPath = path.join(outputDir, cleanHref);
-				} else {
-					// Relative path from current file
-					targetPath = path.join(baseDir, cleanHref);
-				}
-
-				// Check if target exists (file or directory with index.html)
-				const fileExists = existsSync(targetPath);
-				const indexExists = existsSync(path.join(targetPath, 'index.html'));
-
-				if (!fileExists && !indexExists) {
-					errors.push({
-						file: relativePath,
-						type: 'broken-link',
-						target: href,
-						message: `Broken internal link: ${href}`,
-					});
-				}
-			}
-
-			// Check images
-			const images = root.querySelectorAll('img[src]');
-			for (const img of images) {
-				const src = img.getAttribute('src');
-
-				// Skip external images, data URIs
-				if (
-					!src ||
-					src.startsWith('http://') ||
-					src.startsWith('https://') ||
-					src.startsWith('data:')
-				) {
-					continue;
-				}
-
-				totalImages++;
-
-				// Resolve to filesystem path
-				let imagePath;
-				if (src.startsWith('/')) {
-					// Absolute path from site root
-					imagePath = path.join(outputDir, src);
-				} else {
-					// Relative path from current file
-					imagePath = path.join(baseDir, src);
-				}
-
-				if (!existsSync(imagePath)) {
-					errors.push({
-						file: relativePath,
-						type: 'missing-image',
-						target: src,
-						message: `Missing image: ${src}`,
-					});
-				}
-			}
-		} catch (error) {
-			errors.push({
-				file: path.relative(outputDir, htmlFile),
-				type: 'parse-error',
-				message: `Failed to parse HTML: ${error.message}`,
-			});
-		}
-	}
-
-	// Report results
-	if (errors.length === 0) {
-		console.log(
-			`✅ Link validation passed: ${totalLinks} links, ${totalImages} images\n`,
-		);
-		return { valid: true, errors: [] };
-	}
-
-	console.error(`❌ Link validation failed: ${errors.length} errors found\n`);
-
-	// Group errors by type
-	const brokenLinks = errors.filter((e) => e.type === 'broken-link');
-	const missingImages = errors.filter((e) => e.type === 'missing-image');
-	const parseErrors = errors.filter((e) => e.type === 'parse-error');
-
-	if (brokenLinks.length > 0) {
-		console.error(`\n🔗 Broken Links (${brokenLinks.length}):`);
-		brokenLinks.forEach(({ file, target }) => {
-			console.error(`   ${file} → ${target}`);
-		});
-	}
-
-	if (missingImages.length > 0) {
-		console.error(`\n🖼️  Missing Images (${missingImages.length}):`);
-		missingImages.forEach(({ file, target }) => {
-			console.error(`   ${file} → ${target}`);
-		});
-	}
-
-	if (parseErrors.length > 0) {
-		console.error(`\n⚠️  Parse Errors (${parseErrors.length}):`);
-		parseErrors.forEach(({ file, message }) => {
-			console.error(`   ${file}: ${message}`);
-		});
-	}
-
-	console.error(
-		'\n💡 Tip: Fix broken links and missing images before deployment\n',
-	);
-
-	if (options.throwOnError) {
-		throw new Error(
-			`Link validation failed with ${errors.length} error(s). Fix issues above.`,
-		);
-	}
-
-	return { valid: false, errors };
+  return { count, errors };
 }
 
+const LINK_SKIP_PREFIXES = ['http://', 'https://', 'mailto:', 'tel:', '#'];
+const IMAGE_SKIP_PREFIXES = ['http://', 'https://', 'data:'];
+
 /**
- * Validate links and throw if invalid
- * Use this in build pipeline to fail fast
+ * Validate links and images in built HTML.
+ * Throws an error if validation fails.
+ * @param {string} outputDir - Output directory to validate
+ * @param {Object} options - Validation options (currently unused but reserved)
  */
-export async function validateLinksOrThrow(outputDir = '_site', options = {}) {
-	return validateLinks(outputDir, { ...options, throwOnError: true });
+export async function validateLinks(outputDir, _options = {}) {
+  logger.info('\n🔗 Validating links and images...\n');
+
+  const htmlFiles = await glob(GLOB_PATTERNS.html(outputDir));
+
+  const errors = [];
+  let totalLinks = 0;
+  let totalImages = 0;
+
+  for (const htmlFile of htmlFiles) {
+    try {
+      const html = await fs.readFile(htmlFile, 'utf-8');
+      const root = parse(html);
+
+      const relativePath = path.relative(outputDir, htmlFile);
+      const baseDir = path.dirname(htmlFile);
+      const common = { outputDir, baseDir, relativePath };
+
+      const links = checkResources(root, {
+        ...common,
+        selector: 'a[href]',
+        attribute: 'href',
+        skipPrefixes: LINK_SKIP_PREFIXES,
+        errorType: 'broken-link',
+        errorPrefix: 'Broken internal link',
+      });
+
+      const images = checkResources(root, {
+        ...common,
+        selector: 'img[src]',
+        attribute: 'src',
+        skipPrefixes: IMAGE_SKIP_PREFIXES,
+        errorType: 'missing-image',
+        errorPrefix: 'Missing image',
+      });
+
+      totalLinks += links.count;
+      totalImages += images.count;
+      errors.push(...links.errors, ...images.errors);
+    } catch (error) {
+      errors.push({
+        file: path.relative(outputDir, htmlFile),
+        type: 'parse-error',
+        message: `Failed to parse HTML: ${error.message}`,
+      });
+    }
+  }
+
+  // Report results
+  if (errors.length > 0) {
+    logger.error(`❌ Link validation failed: ${errors.length} errors found\n`);
+
+    const grouped = {
+      'broken-link': { icon: '🔗', label: 'Broken Links' },
+      'missing-image': { icon: '🖼️ ', label: 'Missing Images' },
+      'parse-error': { icon: '⚠️ ', label: 'Parse Errors' },
+    };
+
+    for (const [type, { icon, label }] of Object.entries(grouped)) {
+      const items = errors.filter((e) => e.type === type);
+      if (items.length === 0) continue;
+
+      logger.error(`\n${icon} ${label} (${items.length}):`);
+      items.forEach(({ file, target, message }) => {
+        logger.error(`   ${file}${target ? ` → ${target}` : `: ${message}`}`);
+      });
+    }
+
+    logger.error('\n💡 Tip: Fix broken links and missing images before deployment\n');
+
+    throw new Error(`Link validation failed with ${errors.length} error(s). Fix issues above.`);
+  }
+
+  logger.info(`✅ Link validation passed: ${totalLinks} links, ${totalImages} images\n`);
 }

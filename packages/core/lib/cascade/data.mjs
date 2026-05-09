@@ -7,14 +7,8 @@
  */
 
 import path from 'path';
-import fs from 'fs';
-import { resolveOverridePaths } from '../defaults.mjs';
-import {
-	resolveResource,
-	scanWithCascade,
-	resourceExists,
-	getThemeRoot,
-} from './resolver.mjs';
+
+import { scanWithCascade } from './resolver.mjs';
 
 /**
  * Configure data cascade with automatic theme defaults
@@ -35,123 +29,26 @@ import {
  * // (automatically takes precedence via Eleventy's data cascade)
  */
 export function configureDataCascade(
-	eleventyConfig,
-	projectRoot,
-	themeMetadata,
-	overridePaths = {},
+  eleventyConfig,
+  projectRoot,
+  themeMetadata,
+  resolvedOverridePaths = {},
 ) {
-	const availableData = getAvailableDataFiles(projectRoot, themeMetadata, overridePaths);
+  const availableData = getAvailableDataFiles(projectRoot, themeMetadata, resolvedOverridePaths);
 
-	availableData.forEach((fileInfo, filename) => {
-		// Only register theme data files (not user files or overrides)
-		// User files will be picked up by Eleventy's native data directory
-		if (fileInfo.source === 'theme') {
-			const dataName = path.basename(filename, path.extname(filename));
+  availableData.forEach((fileInfo, filename) => {
+    // Only register theme data files (not user files or overrides)
+    // User files will be picked up by Eleventy's native data directory
+    if (fileInfo.source === 'theme') {
+      const dataName = path.basename(filename, path.extname(filename));
 
-			eleventyConfig.addGlobalData(dataName, async () => {
-				// Import theme data file
-				const mod = await import(fileInfo.path);
-				return mod.default || mod;
-			});
-		}
-	});
-}
-
-/**
- * Merge theme data with user data (user wins)
- *
- * DEPRECATED: Use configureDataCascade() instead for automatic cascade.
- * This function is kept for backwards compatibility.
- *
- * Copies theme data files to user's data directory if they don't exist.
- * This allows theme to provide sensible defaults while user maintains
- * full control via simple file override.
- *
- * @param {string} projectRoot - Path to content repo root
- * @param {Object} overridePaths - Override paths configuration
- * @returns {Object} Paths { themeDataPath, userDataPath }
- */
-export function mergeDataFiles(projectRoot, themeMetadata, overridePaths = {}) {
-	const resolved = resolveOverridePaths(themeMetadata, overridePaths);
-	const dataDir = resolved.data;
-	const themeRoot = getThemeRoot(projectRoot, themeMetadata.name);
-
-	const themeDataPath = path.join(themeRoot, 'data');
-	const userDataPath = path.join(projectRoot, dataDir);
-
-	// Check if theme data directory exists
-	if (!fs.existsSync(themeDataPath)) {
-		return { themeDataPath, userDataPath };
-	}
-
-	// Get list of theme data files
-	const themeDataFiles = fs.readdirSync(themeDataPath);
-
-	// Copy theme data files that don't exist in user's data dir
-	themeDataFiles.forEach((file) => {
-		const userFile = path.join(userDataPath, file);
-		const themeFile = path.join(themeDataPath, file);
-
-		if (!fs.existsSync(userFile)) {
-			// Ensure user data directory exists
-			fs.mkdirSync(path.dirname(userFile), { recursive: true });
-
-			// Copy theme default
-			fs.copyFileSync(themeFile, userFile);
-
-			console.log(`📄 Copied theme data: ${file} → ${dataDir}/${file}`);
-			console.log(`   (Customize by editing ${dataDir}/${file})`);
-		}
-	});
-
-	return { themeDataPath, userDataPath };
-}
-
-/**
- * Get data file with cascade resolution
- *
- * Useful for programmatic access to merged data.
- * Checks user directory first, falls back to theme.
- *
- * @param {string} filename - Data file name (e.g., 'site.js', 'navigation.js')
- * @param {string} projectRoot - Path to content repo root
- * @param {Object} overridePaths - Override paths configuration
- * @returns {string|null} Resolved file path or null if not found
- *
- * @example
- * // Find navigation data file
- * const navPath = resolveDataFile('navigation.js', __dirname, overridePaths);
- * if (navPath) {
- *   const nav = await import(navPath);
- *   console.log(nav.default);
- * }
- */
-export function resolveDataFile(filename, projectRoot, themeMetadata, overridePaths = {}) {
-	const resolved = resolveOverridePaths(themeMetadata, overridePaths);
-	const result = resolveResource({
-		projectRoot,
-		themeName: themeMetadata.name,
-		resolvedOverridePaths: resolved,
-		resourceType: 'data',
-		filename,
-		throwOnMissing: false,
-	});
-
-	return result?.path || null;
-}
-
-/**
- * Check if a data file exists (in user or theme)
- *
- * @param {string} filename - Data file name
- * @param {string} projectRoot - Path to content repo root
- * @param {Object} themeMetadata - Theme metadata object
- * @param {Object} overridePaths - Override paths configuration
- * @returns {boolean} True if file exists
- */
-export function dataFileExists(filename, projectRoot, themeMetadata, overridePaths = {}) {
-	const resolved = resolveOverridePaths(themeMetadata, overridePaths);
-	return resourceExists(projectRoot, themeMetadata.name, resolved, 'data', filename);
+      eleventyConfig.addGlobalData(dataName, async () => {
+        // Import theme data file
+        const mod = await import(fileInfo.path);
+        return mod.default || mod;
+      });
+    }
+  });
 }
 
 /**
@@ -166,13 +63,12 @@ export function dataFileExists(filename, projectRoot, themeMetadata, overridePat
  *   Each file info contains: { name, source, path }
  *   Source is: 'theme', 'user', or 'override'
  */
-export function getAvailableDataFiles(projectRoot, themeMetadata, overridePaths = {}) {
-	const resolved = resolveOverridePaths(themeMetadata, overridePaths);
-	return scanWithCascade({
-		projectRoot,
-		themeName: themeMetadata.name,
-		resolvedOverridePaths: resolved,
-		resourceType: 'data',
-		filter: (file) => file.endsWith('.js') || file.endsWith('.json'),
-	});
+function getAvailableDataFiles(projectRoot, themeMetadata, resolvedOverridePaths = {}) {
+  return scanWithCascade({
+    projectRoot,
+    themeName: themeMetadata.name,
+    resolvedOverridePaths,
+    resourceType: 'data',
+    filter: (file) => file.endsWith('.js') || file.endsWith('.json'),
+  });
 }

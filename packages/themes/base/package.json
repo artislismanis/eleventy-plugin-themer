@@ -1,51 +1,67 @@
 {
-	"name": "@eleventy-plugin-themer/theme-base",
-	"version": "3.0.0",
-	"description": "A minimal convention-based Eleventy theme with self-describing metadata and extensible features",
-	"type": "module",
-	"main": "lib/index.mjs",
-	"exports": {
-		".": "./lib/index.mjs",
-		"./theme.json": "./theme.json",
-		"./layouts/*": "./layouts/*",
-		"./styles/*": "./styles/*",
-		"./scripts/*": "./scripts/*",
-		"./features/*": "./features/*"
-	},
-	"files": [
-		"lib/",
-		"layouts/",
-		"styles/",
-		"scripts/",
-		"features/",
-		"public/",
-		"theme.json",
-		"README.md",
-		"LICENSE"
-	],
-	"keywords": [
-		"eleventy",
-		"eleventy-theme",
-		"11ty",
-		"blog-theme",
-		"blog-template",
-		"feature-system"
-	],
-	"author": "Artis Lismanis",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
-		"directory": "packages/themes/base"
-	},
-	"dependencies": {
-		"@eleventy-plugin-themer/core": "^3.0.0",
-		"luxon": "^3.7.0"
-	},
-	"peerDependencies": {
-		"@11ty/eleventy": "^3.1.0"
-	},
-	"engines": {
-		"node": ">=22"
-	}
+  "name": "@eleventy-plugin-themer/theme-base",
+  "version": "3.0.0",
+  "description": "A minimal convention-based Eleventy theme with self-describing metadata and extensible features",
+  "type": "module",
+  "main": "lib/index.mjs",
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./theme.json": "./theme.json",
+    "./layouts/*": "./layouts/*",
+    "./styles/*": "./styles/*",
+    "./scripts/*": "./scripts/*",
+    "./features/*": "./features/*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "files": [
+    "lib/",
+    "layouts/",
+    "styles/",
+    "scripts/",
+    "features/",
+    "public/",
+    "theme.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "eleventy",
+    "eleventy-theme",
+    "11ty",
+    "blog-theme",
+    "blog-template",
+    "feature-system"
+  ],
+  "author": "Artis Lismanis",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
+    "directory": "packages/themes/base"
+  },
+  "bugs": {
+    "url": "https://github.com/artislismanis/eleventy-plugin-themer/issues"
+  },
+  "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/themes/base#readme",
+  "dependencies": {
+    "@eleventy-plugin-themer/core": "^3.0.0",
+    "luxon": "^3.7.0",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "^9.2.0"
+  },
+  "peerDependencies": {
+    "@11ty/eleventy": "^3.1.0",
+    "@11ty/eleventy-navigation": "^1.0.0",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

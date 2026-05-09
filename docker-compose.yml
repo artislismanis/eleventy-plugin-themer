@@ -1,0 +1,10 @@
+services:
+  dev:
+    build: .devcontainer
+    volumes:
+      - .:/workspace
+    ports:
+      - '8080:8080'
+    command: bash
+    stdin_open: true
+    tty: true

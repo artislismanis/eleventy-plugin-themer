@@ -14,37 +14,42 @@
  *   init({ ...defaultConfig, lineNumbers: true });
  *
  * CSS Custom Properties (bundle-scoped):
- *   --code-bg, --code-fg, --code-font-family, --code-font-size,
- *   --code-line-height, --code-border-radius, --code-copy-button-bg
+ *   --code-border-radius, --code-copy-button-bg, --code-line-number-fg,
+ *   --code-scrollbar-thumb-bg
  *
- * See styles/features/code-highlighting.scss for full CSS custom properties list.
+ * PrismJS theme is config-driven via theme.json `config.codeHighlighting.prismTheme`.
+ * Users can swap themes without overriding this file.
+ * See styles.scss for full CSS custom properties list.
  */
 
-// Import feature styles
+// PrismJS theme + diff-highlight (resolved via virtual module from theme config)
+import 'virtual:prism-theme';
+
+// Feature enhancements (border-radius, copy button, line numbers, scrollbar)
 import './styles.scss';
 
 /**
  * Default configuration
  */
 export const defaultConfig = {
-	// Features
-	copyButton: true,
-	lineNumbers: false,
-	highlightLines: true,
+  // Features
+  copyButton: true,
+  lineNumbers: false,
+  highlightLines: true,
 
-	// Behavior
-	copyButtonText: 'Copy',
-	copiedButtonText: 'Copied!',
-	copiedDuration: 2000,
+  // Behavior
+  copyButtonText: 'Copy',
+  copiedButtonText: 'Copied!',
+  copiedDuration: 2000,
 
-	// Selectors
-	codeBlockSelector: 'pre[class*="language-"]',
+  // Selectors
+  codeBlockSelector: 'pre[class*="language-"]',
 
-	// Callbacks (extension points)
-	onCopy: null, // (text, element) => void
-	onCopyError: null, // (error, element) => void
-	beforeHighlight: null, // (element) => void
-	afterHighlight: null, // (element) => void
+  // Callbacks (extension points)
+  onCopy: null, // (text, element) => void
+  onCopyError: null, // (error, element) => void
+  beforeHighlight: null, // (element) => void
+  afterHighlight: null, // (element) => void
 };
 
 // Internal state
@@ -72,45 +77,43 @@ let currentConfig = null;
  * });
  */
 export function init(userConfig = {}) {
-	if (isInitialized) {
-		console.warn(
-			'[code-highlighting] Already initialized. Call destroy() first to reinitialize.',
-		);
-		return;
-	}
+  if (isInitialized) {
+    console.warn('[code-highlighting] Already initialized. Call destroy() first to reinitialize.');
+    return;
+  }
 
-	currentConfig = { ...defaultConfig, ...userConfig };
+  currentConfig = { ...defaultConfig, ...userConfig };
 
-	const initializeElements = () => {
-		const codeBlocks = document.querySelectorAll(currentConfig.codeBlockSelector);
+  const initializeElements = () => {
+    const codeBlocks = document.querySelectorAll(currentConfig.codeBlockSelector);
 
-		codeBlocks.forEach((pre) => {
-			if (currentConfig.beforeHighlight) {
-				currentConfig.beforeHighlight(pre);
-			}
+    codeBlocks.forEach((pre) => {
+      if (currentConfig.beforeHighlight) {
+        currentConfig.beforeHighlight(pre);
+      }
 
-			if (currentConfig.lineNumbers) {
-				addLineNumbers(pre);
-			}
+      if (currentConfig.lineNumbers) {
+        addLineNumbers(pre);
+      }
 
-			if (currentConfig.copyButton) {
-				addCopyButton(pre, currentConfig);
-			}
+      if (currentConfig.copyButton) {
+        addCopyButton(pre, currentConfig);
+      }
 
-			if (currentConfig.afterHighlight) {
-				currentConfig.afterHighlight(pre);
-			}
-		});
+      if (currentConfig.afterHighlight) {
+        currentConfig.afterHighlight(pre);
+      }
+    });
 
-		isInitialized = true;
-	};
+    isInitialized = true;
+  };
 
-	// Handle DOM ready state
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', initializeElements);
-	} else {
-		initializeElements();
-	}
+  // Handle DOM ready state
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeElements);
+  } else {
+    initializeElements();
+  }
 }
 
 /**
@@ -119,12 +122,10 @@ export function init(userConfig = {}) {
  * @returns {void}
  */
 export function destroy() {
-	document.querySelectorAll('.code-copy-button').forEach((btn) => btn.remove());
-	document
-		.querySelectorAll('.line-numbers')
-		.forEach((el) => el.classList.remove('line-numbers'));
-	isInitialized = false;
-	currentConfig = null;
+  document.querySelectorAll('.code-copy-button').forEach((btn) => btn.remove());
+  document.querySelectorAll('.line-numbers').forEach((el) => el.classList.remove('line-numbers'));
+  isInitialized = false;
+  currentConfig = null;
 }
 
 /**
@@ -133,7 +134,7 @@ export function destroy() {
  * @returns {Object} Current state { isInitialized, config }
  */
 export function getState() {
-	return { isInitialized, config: currentConfig };
+  return { isInitialized, config: currentConfig };
 }
 
 // Private helpers
@@ -143,25 +144,25 @@ export function getState() {
  * @private
  */
 function addLineNumbers(pre) {
-	pre.classList.add('line-numbers');
+  pre.classList.add('line-numbers');
 
-	const code = pre.querySelector('code');
-	if (!code) return;
+  const code = pre.querySelector('code');
+  if (!code) return;
 
-	const lines = code.textContent.split('\n');
-	const lineCount = lines.length;
+  const lines = code.textContent.split('\n');
+  const lineCount = lines.length;
 
-	// Create line numbers container
-	const lineNumbersDiv = document.createElement('div');
-	lineNumbersDiv.className = 'line-numbers-rows';
-	lineNumbersDiv.setAttribute('aria-hidden', 'true');
+  // Create line numbers container
+  const lineNumbersDiv = document.createElement('div');
+  lineNumbersDiv.className = 'line-numbers-rows';
+  lineNumbersDiv.setAttribute('aria-hidden', 'true');
 
-	for (let i = 0; i < lineCount; i++) {
-		const span = document.createElement('span');
-		lineNumbersDiv.appendChild(span);
-	}
+  for (let i = 0; i < lineCount; i++) {
+    const span = document.createElement('span');
+    lineNumbersDiv.appendChild(span);
+  }
 
-	pre.appendChild(lineNumbersDiv);
+  pre.appendChild(lineNumbersDiv);
 }
 
 /**
@@ -169,47 +170,47 @@ function addLineNumbers(pre) {
  * @private
  */
 function addCopyButton(pre, config) {
-	const button = document.createElement('button');
-	button.className = 'code-copy-button';
-	button.textContent = config.copyButtonText;
-	button.setAttribute('aria-label', 'Copy code to clipboard');
-	button.type = 'button';
+  const button = document.createElement('button');
+  button.className = 'code-copy-button';
+  button.textContent = config.copyButtonText;
+  button.setAttribute('aria-label', 'Copy code to clipboard');
+  button.type = 'button';
 
-	button.addEventListener('click', async () => {
-		const code = pre.querySelector('code');
-		const text = code?.textContent || '';
+  button.addEventListener('click', async () => {
+    const code = pre.querySelector('code');
+    const text = code?.textContent || '';
 
-		try {
-			await navigator.clipboard.writeText(text);
-			button.textContent = config.copiedButtonText;
-			button.classList.add('copied');
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = config.copiedButtonText;
+      button.classList.add('copied');
 
-			if (config.onCopy) {
-				config.onCopy(text, pre);
-			}
+      if (config.onCopy) {
+        config.onCopy(text, pre);
+      }
 
-			setTimeout(() => {
-				button.textContent = config.copyButtonText;
-				button.classList.remove('copied');
-			}, config.copiedDuration);
-		} catch (err) {
-			console.error('Failed to copy:', err);
-			button.textContent = 'Error';
-			button.classList.add('error');
+      setTimeout(() => {
+        button.textContent = config.copyButtonText;
+        button.classList.remove('copied');
+      }, config.copiedDuration);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      button.textContent = 'Error';
+      button.classList.add('error');
 
-			if (config.onCopyError) {
-				config.onCopyError(err, pre);
-			}
+      if (config.onCopyError) {
+        config.onCopyError(err, pre);
+      }
 
-			setTimeout(() => {
-				button.textContent = config.copyButtonText;
-				button.classList.remove('error');
-			}, config.copiedDuration);
-		}
-	});
+      setTimeout(() => {
+        button.textContent = config.copyButtonText;
+        button.classList.remove('error');
+      }, config.copiedDuration);
+    }
+  });
 
-	pre.style.position = 'relative';
-	pre.appendChild(button);
+  pre.style.position = 'relative';
+  pre.appendChild(button);
 }
 
 // NO AUTO-INIT - user must explicitly call init()

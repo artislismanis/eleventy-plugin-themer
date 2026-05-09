@@ -1,16 +1,184 @@
-# Eleventy Theme Framework Architecture
+# Eleventy Theme Framework
 
-This document defines the architectural principles, package responsibilities, and design patterns for the Eleventy theme framework.
+This guide provides build commands, code style guidelines, architectural patterns, and security conventions for this Eleventy theme framework monorepo.
 
-## Overview
+## Build Commands
+
+### Root Level Commands
+
+```bash
+# Run all tests (278 tests, 20 files)
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run single test file
+npx vitest run packages/core/__tests__/cascade/resolver.test.mjs
+
+# Run tests for specific package
+npx vitest run packages/core
+
+# Linting and formatting
+npm run lint          # Run all linters (JS + CSS + format check)
+npm run lint:js        # ESLint only
+npm run lint:css       # Stylelint only
+npm run lint:fix       # Auto-fix linting issues
+npm run format         # Prettier format
+npm run format:check   # Check formatting
+```
+
+### Package-Specific Commands
+
+```bash
+# Core package
+cd packages/core && npm run test
+
+# Vite adapter
+cd packages/build/vite && npm run test
+
+# Base theme
+cd packages/themes/base && npm run test
+```
+
+## Code Style Guidelines
+
+### File Extensions
+
+- **ES Modules**: `.mjs` for all library code
+- **Tests**: `.test.mjs` in `__tests__` directories
+- **Client-side JS**: `.js` for browser scripts and features
+- **Config**: `.mjs` for all config files (ESLint, Prettier, etc.)
+
+### Import Order (ESLint enforced)
+
+```javascript
+// 1. Node.js builtins
+import fs from 'fs';
+import path from 'path';
+
+// 2. External packages
+import { describe, it, expect } from 'vitest';
+import luxon from 'luxon';
+
+// 3. Internal packages (relative imports)
+import { DEFAULT_OVERRIDE_PATHS } from '../defaults.mjs';
+import { getThemeRoot } from './cascade/resolver.mjs';
+```
+
+### Naming Conventions
+
+- **Functions**: `camelCase` - descriptive verbs (`resolveResource`, `getAvailableFeatures`)
+- **Variables**: `camelCase` - descriptive nouns (`themeMetadata`, `overridePaths`)
+- **Constants**: `UPPER_SNAKE_CASE` - immutable values (`DEFAULT_OVERRIDE_PATHS`)
+- **Classes**: `PascalCase` - generic, technology-agnostic (`ThemeAwareLoader`, not `NunjucksLoader`)
+- **Files**: `kebab-case.mjs` for modules, `kebab-case.js` for browser scripts
+
+### Error Handling
+
+```javascript
+// Good: Specific error with context
+if (!fs.existsSync(pkgJsonPath)) {
+  throw new Error(`Theme package.json not found for "${themeName}" at ${pkgJsonPath}`);
+}
+
+// Good: Validate inputs early
+if (!projectRoot || typeof projectRoot !== 'string') {
+  throw new Error('projectRoot must be a non-empty string');
+}
+
+// Good: Chain original errors
+} catch (cause) {
+  throw new Error('Build failed for theme', { cause });
+}
+
+// Bad: Generic errors
+throw new Error('Failed to load theme');
+```
+
+### Testing Patterns
+
+```javascript
+describe('resolveResource', () => {
+  beforeEach(() => {
+    vi.mock('fs');
+  });
+
+  it('should resolve user override when it exists', () => {
+    // Arrange
+    const mockFs = vi.mocked(fs);
+    mockFs.existsSync.mockReturnValue(true);
+
+    // Act
+    const result = resolveResource(mockOptions);
+
+    // Assert
+    expect(result).toBe(expectedPath);
+  });
+});
+```
+
+Testing gotchas:
+
+- When testing prototype pollution, use `Object.hasOwn(result, 'constructor')` instead of `result.constructor === undefined` (the latter resolves via prototype chain)
+- Template-loader tests mock `nunjucks` module entirely — the mock returns a `MockFileSystemLoader` class and a mock `Environment` constructor
+- The `validate-links` plugin uses a shared `checkResources()` helper for both link and image validation
+
+---
+
+## Security Patterns
+
+### Prototype Pollution Guards
+
+All deep-merge functions guard against prototype pollution. **Always** include this pattern when writing recursive merge/copy logic:
+
+```javascript
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+// In any loop over object keys:
+for (const key of Object.keys(source)) {
+  if (UNSAFE_KEYS.has(key)) continue;
+  // ...
+}
+```
+
+Files with guards:
+
+- `packages/core/lib/cascade/config.mjs` — `deepMergeConfig()`
+- `packages/build/vite/utils/merge-config.mjs` — `deepMergeViteConfig()`
+
+### Template Escaping (autoescape is OFF)
+
+Nunjucks runs with `autoescape: false`. All dynamic values in templates **must** use the appropriate escape filter from `packages/themes/base/lib/filters.mjs`:
+
+| Context            | Filter            | Example                                         |
+| ------------------ | ----------------- | ----------------------------------------------- |
+| HTML content       | `escapeHtml`      | `{{ copyright \| escapeHtml }}`                 |
+| HTML attributes    | `escapeAttr`      | `content="{{ desc \| escapeAttr }}"`            |
+| CSS values         | `escapeCssValue`  | `{{ color \| escapeCssValue }}`                 |
+| JS string literals | `escapeJsString`  | `var id = '{{ gaId \| escapeJsString }}'`       |
+| URLs in href/src   | `safeUrl`         | `href="{{ url \| safeUrl }}"`                   |
+
+The `socialUrl()` filter already validates URL protocols internally (blocks `javascript:` and `data:` schemes).
+
+### Vite Config Deep Merge
+
+`deepMergeViteConfig()` explicitly deep-merges these top-level keys: `resolve`, `css`, `build` (including `rollupOptions.input`), and `server`. Other keys use shallow spread. If adding new deep-merge keys, update both the function and its tests.
+
+---
+
+## Architecture Overview
 
 This is a **convention-based theme framework** for Eleventy that enables swappable, maintainable themes through clear separation of concerns and a well-defined specification.
 
 ### Package Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
-│  @eleventy-themes/core                          │
+│  @eleventy-plugin-themer/core                   │
 │  FRAMEWORK SPECIFICATION & IMPLEMENTATION       │
 │  - Theme conventions & schema                   │
 │  - Cascade resolution algorithm                 │
@@ -33,124 +201,128 @@ This is a **convention-based theme framework** for Eleventy that enables swappab
 ┌──────────────────────────────────────────────────┐
 │  Theme Implementations                           │
 │  (follow the spec defined by core)               │
-│  - @eleventy-themes/base-blog                    │
-│  - @eleventy-themes/docs                         │
+│  - @eleventy-plugin-themer/theme-base            │
+│  - @eleventy-plugin-themer/theme-docs            │
 │  - etc.                                          │
 └──────────────────────────────────────────────────┘
 ```
 
+### Layered Architecture
+
+```text
+┌────────────────────────────────────────┐
+│  Presentation Layer (Themes)           │
+│  - Layouts, styles, features           │
+└────────────┬───────────────────────────┘
+             │
+┌────────────▼───────────────────────────┐
+│  Integration Layer (Build Adapters)    │
+│  - Vite, Webpack configuration         │
+└────────────┬───────────────────────────┘
+             │
+┌────────────▼───────────────────────────┐
+│  Framework Layer (Core)                │
+│  - Specification & implementation      │
+└────────────────────────────────────────┘
+```
+
+Each layer has clear responsibilities, depends only on layers below, exposes stable interfaces, and can be tested independently.
+
 ---
 
-## @eleventy-themes/core
+## Core Package
 
-### Role: Framework Specification & Canonical Implementation
+### Role: Framework Specification and Canonical Implementation
 
 Core is **not just a utility package** - it is the **theme framework itself**. It defines:
 
-#### 1. **The Specification**
-
-Establishes conventions for:
-- Theme structure and file organization
-- Metadata schema (theme.json)
-- Cascade resolution order (user-first override pattern)
-- Feature discovery mechanism
-- Resource path conventions
-
-#### 2. **The Integration API**
-
-Provides the contract that:
-- Build systems (Vite, Webpack) consume
-- Content repositories integrate with
-- Themes implement against
-- Enables theme swappability (any theme following the spec works)
-
-#### 3. **The Validation Layer**
-
-Ensures:
-- Themes conform to the specification
-- Metadata is valid and complete
-- Required resources exist
-- Helpful error messages guide developers
-
-#### 4. **The Canonical Implementation**
-
-Reference implementation of:
-- Cascade resolution algorithm
-- Feature discovery
-- Resource resolution
-- Template engine configuration
+1. **The Specification** — Theme structure, metadata schema (`theme.json`), cascade resolution order (user-first), feature discovery, resource path conventions.
+2. **The Integration API** — The contract that build systems consume, content repositories integrate with, and themes implement against.
+3. **The Validation Layer** — Ensures themes conform to spec, metadata is valid, required resources exist.
+4. **The Canonical Implementation** — Cascade resolution, feature discovery, resource resolution, template engine configuration.
 
 ### Design Principles (Core)
 
-**1. Build System Agnostic**
-- Must work with any build system (Vite, Webpack, Rollup, none)
-- Zero build system dependencies
-- Pure cascade logic
+1. **Build System Agnostic** — Zero build system dependencies, pure cascade logic
+2. **Single Source of Truth** — ALL cascade logic and convention enforcement lives here
+3. **Minimal Surface Area** — Simple, focused API:
 
-**2. Single Source of Truth**
-- ALL cascade logic lives here
-- ALL theme convention enforcement lives here
-- ONE place to understand how the framework works
+   ```javascript
+   getAvailableFeatures(projectRoot, themeMetadata, overridePaths?)
+   resolveResource({projectRoot, overridePaths, resourceType, filename})
+   configureTemplateEngine(eleventyConfig, {projectRoot, themeName, overridePaths})
+   ```
 
-**3. Minimal Surface Area**
-```javascript
-// Simple, focused API that hides complexity
-getAvailableFeatures(projectRoot, themeMetadata, overridePaths?)
-resolveResource({projectRoot, overridePaths, resourceType, filename})
-configureTemplateEngine(eleventyConfig, {projectRoot, themeName, overridePaths})
-```
+4. **Convention over Configuration** — Theme metadata defines defaults, user overrides are optional
 
-**4. Convention over Configuration**
-- Theme metadata defines defaults
-- Sensible fallbacks for all paths
-- User overrides are optional, not required
+### Core Implementation Details
+
+**Plugin Initialization:** `eleventyPluginThemer()` in `packages/core/lib/index.mjs` calls `configureCascade()` to set up the full data/asset/config cascade. If modifying plugin init, ensure cascade setup is preserved.
+
+**Barrel File:** `packages/core/lib/cascade/index.mjs` exports only symbols consumed by `lib/index.mjs` and `build-vite`:
+
+- `configureCascade`, `getAvailableFeatures`, `resolveFeatureEntryPath`, `resolveResource`, `getThemeRoot`, `buildPaths`, `resolveThemeMetadata`
+
+Do not add internal-only helpers to this barrel. Import directly from the source module instead.
+
+**Config Cascade:** `getMergedThemeConfig()` reads theme defaults from `themeMetadata.config` (already loaded in memory), not from disk.
 
 ---
 
-## @eleventy-themes/vite (and other build adapters)
+## Build Adapters (Vite)
 
 ### Role: Build System Integration Layer
 
 Build adapters are **thin wrappers** that:
+
 1. Consume core's API
-2. Translate framework concepts → build system concepts
+2. Translate framework concepts into build system concepts
 3. Add build-specific optimizations
 
-### Responsibilities
-
 **DO:**
-- ✅ Convert framework features → build system entry points
-- ✅ Configure build system with theme-aware settings
-- ✅ Add build-specific optimizations (code splitting, tree shaking)
-- ✅ Provide build system plugins (auto-import, aliases)
+
+- Convert framework features into build system entry points
+- Configure build system with theme-aware settings
+- Add build-specific optimizations (code splitting, tree shaking)
+- Provide build system plugins (auto-import, aliases)
 
 **DO NOT:**
-- ❌ Implement cascade logic (core owns this)
-- ❌ Discover features (core owns this)
-- ❌ Validate themes (core owns this)
-- ❌ Know about theme internals (only consume core's API)
+
+- Implement cascade logic (core owns this)
+- Discover features (core owns this)
+- Validate themes (core owns this)
+- Know about theme internals (only consume core's API)
+
+### Vite Implementation Details
+
+**Feature Discovery:** Features are discovered once via `getAvailableFeatures()` in `eleventyPluginThemerVite()` and passed as `discoveredFeatures` to all downstream consumers. Do not call `getAvailableFeatures()` redundantly — accept the optional `discoveredFeatures` parameter instead.
 
 ### Design Principles (Build Adapters)
 
-**1. Adapter Pattern**
-- Adapt core's framework API → specific build system
-- Example: `getAvailableFeatures()` → `vite.rollupOptions.input`
+#### Adapter Pattern
 
-**2. Dependency Inversion**
 ```javascript
-// ✅ Depend on core's abstraction, not implementation details
-import { getAvailableFeatures } from '@eleventy-themes/core';
+// Adapt core's framework API into specific build system
+// getAvailableFeatures() -> vite.rollupOptions.input
+```
 
-// ❌ Don't reimplement core's logic
+#### Dependency Inversion
+
+```javascript
+// Depend on core's abstraction, not implementation details
+import { getAvailableFeatures } from '@eleventy-plugin-themer/core';
+
+// Don't reimplement core's logic
 // fs.readdirSync(featuresDir)... // NO!
 ```
 
-**3. Minimal Parameter Passing**
+#### Minimal Parameter Passing
+
 ```javascript
-// ✅ GOOD: Core extracts what it needs
+// GOOD: Core extracts what it needs
 getFeatureEntries(projectRoot, themeMetadata)
 
-// ❌ BAD: Passing parameters core already has
+// BAD: Passing parameters core already has
 getFeatureEntries(projectRoot, themeName, overridePaths, themeFeatures)
 ```
 
@@ -158,13 +330,13 @@ getFeatureEntries(projectRoot, themeName, overridePaths, themeFeatures)
 
 ## Theme Packages
 
-### Role: Content & Presentation Implementation
+### Role: Content and Presentation Implementation
 
 Themes are **declarative blueprints** that follow the core spec.
 
 ### Structure (Defined by Core Spec)
 
-```
+```text
 theme/
 ├── theme.json              # Metadata (spec contract)
 ├── layouts/                # Template files
@@ -182,7 +354,7 @@ theme/
 
 ```json
 {
-  "name": "@eleventy-themes/base-blog",
+  "name": "@eleventy-plugin-themer/theme-base",
   "version": "1.0.0",
   "cascade": {
     "enabled": true,
@@ -203,216 +375,65 @@ theme/
 }
 ```
 
-**Key Point:** Themes are **data**, not logic. All framework logic lives in core.
+Themes are **data**, not logic. All framework logic lives in core.
 
 ---
 
-## Naming Conventions
+## API Naming Conventions
 
 ### Principle: Technology-Agnostic APIs
 
-**Public APIs should use framework terminology, not specific technology names.**
+Public APIs should use framework terminology, not specific technology names. This enables future extensibility, clearer semantics, and less coupling.
 
-This enables:
-- Future extensibility to other technologies
-- Clearer semantic meaning
-- Less coupling to implementation details
+| Concept                | Too Specific           | Generic                        |
+| ---------------------- | ---------------------- | ------------------------------ |
+| Template configuration | `configureNunjucks()`  | `configureTemplateEngine()`    |
+| Build entries          | `getViteEntries()`     | `getFeatureEntries()`          |
+| Style compilation      | `compileSCSS()`        | `compileStyles()`              |
+| Asset bundling         | `runWebpack()`         | `bundleAssets()`               |
 
-### Examples
-
-**❌ BAD: Technology-specific naming**
-```javascript
-// Assumes Nunjucks forever
-configureNunjucks(config, options)
-
-// Assumes Vite forever
-getViteEntries(root, metadata)
-
-// Assumes SCSS forever
-compileSCSS(inputPath)
-```
-
-**✅ GOOD: Generic, framework-level naming**
-```javascript
-// Works with any template engine
-configureTemplateEngine(config, options)
-
-// Works with any build system
-getFeatureEntries(root, metadata)
-
-// Generic asset concept
-compileStyles(inputPath)
-```
-
-### Internal Implementation Can Be Specific
+Internal implementation can be specific — public APIs describe WHAT, not HOW:
 
 ```javascript
-// ✅ Public API is generic
+// Public API is generic
 export function configureTemplateEngine(eleventyConfig, options) {
-  // ✅ Internal implementation can be specific
+  // Internal implementation can be specific
   const nunjucksEnv = new Nunjucks.Environment(loader);
   eleventyConfig.setLibrary('njk', nunjucksEnv);
   return nunjucksEnv;
 }
 ```
 
-The implementation uses Nunjucks, but the API doesn't force you to know that.
-
-### Naming Checklist
-
-When creating public APIs, ask:
-
-- [ ] Could this work with a different technology? → Use generic name
-- [ ] Is this framework concept or tech implementation? → Framework concept gets generic name
-- [ ] Would changing underlying tech require renaming? → If yes, name is too specific
-- [ ] Does the name describe WHAT or HOW? → Public APIs describe WHAT
-
-**Examples:**
-
-| Concept | ❌ Too Specific | ✅ Generic |
-|---------|----------------|-----------|
-| Template configuration | `configureNunjucks()` | `configureTemplateEngine()` |
-| Build entries | `getViteEntries()` | `getFeatureEntries()` |
-| Style compilation | `compileSCSS()` | `compileStyles()` |
-| Asset bundling | `runWebpack()` | `bundleAssets()` |
-| Package manager | `npmInstall()` | `installDependencies()` |
-
-### Class and Type Names
-
-**Same principle applies to classes:**
+Same principle applies to classes:
 
 ```javascript
-// ❌ Technology-specific
-class NunjucksThemeLoader { }
-class ViteBundleManager { }
-
-// ✅ Generic
 class ThemeAwareLoader { }      // Currently Nunjucks, but name doesn't say so
 class BuildManager { }          // Could be Vite, Webpack, etc.
 ```
 
 ---
 
-## SOLID Principles Applied
+## Design Principles
 
-### Single Responsibility Principle (SRP)
+### SOLID
 
-Each package has ONE reason to change:
+| Principle | Application                                                                                                           |
+| --------- | --------------------------------------------------------------------------------------------------------------------- |
+| **SRP**   | Each package has one reason to change: Core (conventions evolve), Vite (Vite API changes), Theme (design changes)     |
+| **OCP**   | Core spec is stable; adapters extend without modifying; themes extend via overrides                                   |
+| **DIP**   | High-level modules depend on Core's abstractions, not filesystem details                                              |
+| **ISP**   | Core provides focused interfaces: feature discovery, resource resolution, template config                             |
+| **LSP**   | Any theme following the spec can replace another                                                                      |
 
-| Package | Responsibility | Changes When... |
-|---------|---------------|----------------|
-| **Core** | Framework specification | Theme conventions evolve |
-| **Vite** | Vite integration | Vite API changes or new optimizations needed |
-| **Theme** | Content presentation | Design or content structure changes |
+### DRY: Knowledge Ownership
 
-### Open/Closed Principle (OCP)
-
-- **Core spec is stable** (open for extension via new resource types, closed for modification)
-- **Build adapters extend** core without modifying it
-- **Themes extend** via user overrides without modifying theme code
-
-### Dependency Inversion Principle (DIP)
-
-```javascript
-// High-level modules (Vite) depend on abstractions (Core's API)
-import { getAvailableFeatures } from '@eleventy-themes/core';
-
-// Not on low-level details (filesystem, specific paths)
-// ❌ import { readdirSync } from 'fs';
-```
-
-### Interface Segregation Principle (ISP)
-
-Core provides focused interfaces:
-```javascript
-// Feature discovery interface
-getAvailableFeatures(projectRoot, themeMetadata)
-
-// Resource resolution interface
-resolveResource({projectRoot, resourceType, filename})
-
-// Not one giant "doEverything()" function
-```
-
-### Liskov Substitution Principle (LSP)
-
-Any theme following the spec can replace another:
-```javascript
-// Swap themes by changing import
-import { metadata } from '@eleventy-themes/base-blog';
-// import { metadata } from '@eleventy-themes/docs';
-
-// Rest of code unchanged - themes are interchangeable
-eleventyConfig.addPlugin(theme, { projectRoot: __dirname });
-```
-
----
-
-## DRY Principle Applied
-
-**Don't Repeat Yourself:** Every piece of knowledge must have a single, unambiguous, authoritative representation.
-
-### Knowledge Ownership
-
-| Knowledge | Owner | Why |
-|-----------|-------|-----|
-| Cascade algorithm | Core | Framework specification |
-| Feature discovery | Core | Convention enforcement |
-| Override resolution | Core | Single source of truth |
-| Build entry points | Build Adapter | Build system specific |
-| Theme layouts | Theme | Content presentation |
-
-### Anti-Pattern: Logic Duplication
-
-**❌ WRONG: Same logic in multiple places**
-```javascript
-// In vite package
-const overrides = overridePaths || themeMetadata.cascade?.defaultOverridePaths;
-
-// In core package
-const overrides = overridePaths || themeMetadata.cascade?.defaultOverridePaths;
-```
-
-**✅ RIGHT: Extract to core, others consume**
-```javascript
-// Core implements once
-export function getAvailableFeatures(projectRoot, themeMetadata, overridePaths) {
-  const resolved = overridePaths || themeMetadata.cascade?.defaultOverridePaths || {};
-  // ...
-}
-
-// Vite consumes
-const features = getAvailableFeatures(projectRoot, themeMetadata);
-```
-
----
-
-## Separation of Concerns (SoC)
-
-### Layered Architecture
-
-```
-┌────────────────────────────────────────┐
-│  Presentation Layer (Themes)           │
-│  - Layouts, styles, features           │
-└────────────┬───────────────────────────┘
-             │
-┌────────────▼───────────────────────────┐
-│  Integration Layer (Build Adapters)    │
-│  - Vite, Webpack configuration         │
-└────────────┬───────────────────────────┘
-             │
-┌────────────▼───────────────────────────┐
-│  Framework Layer (Core)                │
-│  - Specification & implementation      │
-└────────────────────────────────────────┘
-```
-
-**Each layer:**
-- Has clear responsibilities
-- Depends only on layers below
-- Exposes stable interfaces
-- Can be tested independently
+| Knowledge          | Owner         | Why                      |
+| ------------------ | ------------- | ------------------------ |
+| Cascade algorithm  | Core          | Framework specification  |
+| Feature discovery  | Core          | Convention enforcement   |
+| Override resolution| Core          | Single source of truth   |
+| Build entry points | Build Adapter | Build system specific    |
+| Theme layouts      | Theme         | Content presentation     |
 
 ---
 
@@ -420,111 +441,36 @@ const features = getAvailableFeatures(projectRoot, themeMetadata);
 
 ### Architectural Violations to Watch For
 
-**1. Build logic in core**
-```javascript
-// ❌ Core should not know about build systems
-if (vite.mode === 'production') { ... }
-
-// ✅ Core provides data, build adapter decides what to do
-export function getAvailableFeatures(...) { ... }
-```
-
-**2. Cascade logic outside core**
-```javascript
-// ❌ Build adapter reimplementing cascade
-fs.readdirSync(userDir).forEach(...)
-
-// ✅ Build adapter consumes core's API
-const features = getAvailableFeatures(projectRoot, themeMetadata);
-```
-
-**3. Theme containing framework logic**
-```javascript
-// ❌ Theme implementing feature discovery
-export function findFeatures() { ... }
-
-// ✅ Theme declares features in metadata
-"themeFeatures": [{"name": "code-highlighting", ...}]
-```
-
-**4. Parameter proliferation**
-```javascript
-// ❌ Passing what core can extract from metadata
-getFeatures(root, name, paths, features, overrides, ...)
-
-// ✅ Core extracts what it needs
-getFeatures(projectRoot, themeMetadata)
-```
-
-**5. Technology-specific public API names**
-```javascript
-// ❌ Couples API to implementation
-export function configureNunjucks(...) { }
-
-// ✅ Generic, extensible naming
-export function configureTemplateEngine(...) { }
-```
-
-### Design Pattern Violations
-
-**1. Breaking Adapter Pattern**
-```javascript
-// ❌ Vite adapter knowing theme internals
-const themeFeaturesPath = path.join(theme, 'features');
-
-// ✅ Vite adapter using core's abstraction
-const features = getAvailableFeatures(projectRoot, themeMetadata);
-```
-
-**2. Breaking DRY**
-```javascript
-// ❌ Same logic in two packages
-// packages/vite/utils.js
-const resolved = overrides || defaults;
-
-// packages/core/cascade.js
-const resolved = overrides || defaults;
-
-// ✅ Logic in core, others import
-import { resolveOverrides } from '@eleventy-themes/core';
-```
-
-**3. Breaking SRP**
-```javascript
-// ❌ Function doing too much
-function doEverything() {
-  discoverFeatures();
-  createViteConfig();
-  optimizeAssets();
-}
-
-// ✅ Each function has one job
-getAvailableFeatures(...)  // Core
-getFeatureEntries(...)     // Vite - uses core
-optimizeBuild(...)         // Vite - separate concern
-```
+1. **Build logic in core** — Core should not know about build systems
+2. **Cascade logic outside core** — Build adapters should consume core's API, not reimplement
+3. **Theme containing framework logic** — Themes declare features in metadata, not discover them
+4. **Parameter proliferation** — Pass `themeMetadata`, let core extract what it needs
+5. **Technology-specific public API names** — Use generic, extensible naming
+6. **Redundant feature discovery** — Accept `discoveredFeatures` param, don't call `getAvailableFeatures()` again
+7. **Missing escape filters** — Any dynamic value in templates needs the appropriate filter (see Security Patterns)
+8. **Unguarded deep merge** — Any recursive merge must include `UNSAFE_KEYS` check
 
 ---
 
 ## Testing Strategy
 
-### Core Package
-**Tests the specification:**
+### Core Package: Tests the Specification
+
 - Cascade resolution follows spec
 - Feature discovery finds theme + user features
 - Validation catches spec violations
 - Works without build system dependencies
 - Template engine configuration works
 
-### Build Adapters
-**Tests the integration:**
+### Build Adapters: Tests the Integration
+
 - Correctly consumes core's API
 - Generates valid build system config
 - Does NOT test cascade logic (core's job)
 - Mocks core for unit tests
 
-### Themes
-**Tests the implementation:**
+### Themes: Tests the Implementation
+
 - Metadata is valid per spec
 - Required resources exist
 - Features are properly structured
@@ -537,107 +483,54 @@ optimizeBuild(...)         // Vite - separate concern
 ### Adding New Build System Support
 
 ```javascript
-// packages/webpack/index.js
-import { getAvailableFeatures } from '@eleventy-themes/core';
+import { getAvailableFeatures } from '@eleventy-plugin-themer/core';
 
 export function getWebpackEntries(projectRoot, themeMetadata) {
-  // 1. Get features from core (follows spec)
   const features = getAvailableFeatures(projectRoot, themeMetadata);
-
-  // 2. Transform to webpack format (adapter responsibility)
   const entries = {};
-  features.forEach(feature => {
-    entries[feature.name] = feature.path;
-  });
-
+  features.forEach(feature => { entries[feature.name] = feature.path; });
   return entries;
 }
 ```
 
-**Key Point:** New adapter = new transformation logic. Core spec doesn't change.
+New adapter = new transformation logic. Core spec doesn't change.
 
 ### Adding New Template Engine Support
 
 ```javascript
-// In core/lib/template-loader.mjs
 export function configureTemplateEngine(eleventyConfig, options) {
-  // Could detect template engine from options or config
   const engine = options.templateEngine || 'nunjucks';
-
-  if (engine === 'nunjucks') {
-    return configureNunjucksEngine(eleventyConfig, options);
-  } else if (engine === 'liquid') {
-    return configureLiquidEngine(eleventyConfig, options);
-  }
-  // ...
+  if (engine === 'nunjucks') return configureNunjucksEngine(eleventyConfig, options);
+  if (engine === 'liquid') return configureLiquidEngine(eleventyConfig, options);
 }
 ```
 
-**Key Point:** Generic API name allows for multiple implementations.
-
----
-
-## Recommended Reading
-
-- [SOLID Principles](https://en.wikipedia.org/wiki/SOLID) - Foundation of object-oriented design
-- [Adapter Pattern](https://refactoring.guru/design-patterns/adapter) - How build integrations work
-- [Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns) - Why we have packages
-- [Convention over Configuration](https://en.wikipedia.org/wiki/Convention_over_configuration) - Theme framework philosophy
-- [Single Source of Truth](https://en.wikipedia.org/wiki/Single_source_of_truth) - Why core owns cascade logic
-- [Naming Conventions](https://en.wikipedia.org/wiki/Naming_convention_(programming)) - Why names matter
+Generic API name allows for multiple implementations.
 
 ---
 
 ## Decision Framework
 
-When adding new functionality, ask:
-
-**Q: Is it about how themes are structured/discovered?**
-→ **Core** (specification)
-
-**Q: Is it about integrating with a specific build tool?**
-→ **Build Adapter** (Vite, Webpack, etc.)
-
-**Q: Is it about presenting content?**
-→ **Theme** (layouts, styles, features)
-
-**Q: Does it duplicate existing logic?**
-→ **Refactor** (DRY violation)
-
-**Q: Does it make one package know too much about another?**
-→ **Refactor** (SoC violation)
-
-**Q: Does the API name reference specific technology?**
-→ **Rename** to be generic and extensible
+| Question                                               | Answer                          |
+| ------------------------------------------------------ | ------------------------------- |
+| Is it about how themes are structured/discovered?      | **Core** (specification)        |
+| Is it about integrating with a specific build tool?    | **Build Adapter**               |
+| Is it about presenting content?                        | **Theme**                       |
+| Does it duplicate existing logic?                      | **Refactor** (DRY violation)    |
+| Does it make one package know too much about another?  | **Refactor** (SoC violation)    |
+| Does the API name reference specific technology?       | **Rename** to be generic        |
 
 ---
 
-## Summary
+## Resolved Issues (v3.0.0 Refactor)
 
-**Core = Specification + API + Validation**
-- Defines how themes work
-- Provides integration interface
-- Enforces conventions
-- Build-system agnostic
-- Template-engine agnostic (in API, specific in implementation)
+These issues were identified and fixed — watch for regressions:
 
-**Build Adapters = Integration Layer**
-- Consume core's API
-- Adapt to specific build tools
-- Add build-specific optimizations
-- Zero framework logic
-- Generic names, specific implementation
-
-**Themes = Implementation**
-- Follow the spec
-- Declare capabilities in metadata
-- Provide content and presentation
-- Zero framework logic
-
-**Naming = Technology-Agnostic**
-- Public APIs describe WHAT, not HOW
-- Use framework terminology
-- Enable future extensibility
-- Keep implementation details internal
-
-**Remember:** Core is not just a helper library - it **IS** the theme framework. Everything else either consumes it (adapters) or conforms to it (themes).
+1. **Prototype pollution** in deep merge functions (SEC-1)
+2. **CSS injection** via unescaped config values in `styles.njk` (SEC-2)
+3. **URL protocol injection** in `socialUrl()` and `icon.njk` (SEC-3)
+4. **Template context escaping** — analytics, disqus, copyright, meta description, git-sha (SEC-4)
+5. **Error chaining** in vite adapter catch block (SEC-6)
+6. **Dead code** removed from `resolver.mjs` (~120 lines: `createResourceResolver`, `createExistsChecker`, `scanDirectoriesWithCascade`)
+7. **Diamond imports** removed from `resolver.mjs` backwards-compat re-exports
+8. **Feature discovery** consolidated from 3x calls to 1x in vite adapter init

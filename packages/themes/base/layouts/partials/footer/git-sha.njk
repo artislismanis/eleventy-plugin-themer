@@ -1,0 +1,22 @@
+{#
+  Git SHA partial
+  Displays short commit hash linked to GitHub
+#}
+{% if theme and theme.footer and theme.footer.showGitSha and build and build.gitShaShort %}
+  <span class="git-sha">
+    {% if theme.footer.gitHubRepo %}
+      <a
+        href="{{ theme.footer.gitHubRepo | safeUrl | escapeAttr }}/commit/{{ build.gitSha | escapeAttr }}"
+        rel="noopener noreferrer"
+        target="_blank"
+        title="View commit {{ build.gitShaShort | escapeAttr }} on GitHub"
+      >
+        {{ build.gitShaShort | escapeHtml }}
+      </a>
+    {% else %}
+      <span title="Build: {{ build.gitSha | escapeAttr }}"
+        >{{ build.gitShaShort | escapeHtml }}</span
+      >
+    {% endif %}
+  </span>
+{% endif %}

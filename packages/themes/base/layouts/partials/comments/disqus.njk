@@ -1,0 +1,31 @@
+{#
+  Disqus comments partial
+  Requires: theme.comments.enabled, theme.comments.disqus.shortname
+  Also checks page frontmatter `comments !== false` to allow per-page disable
+#}
+{% if theme.comments.disqus and theme.comments.disqus.shortname %}
+  {% if comments !== false %}
+    <section class="comments" id="comments">
+      <h2>Comments</h2>
+      <div id="disqus_thread"></div>
+      <script>
+        var disqus_config = function () {
+          this.page.url = '{{ site.url | escapeJsString }}{{ page.url | escapeJsString }}';
+          this.page.identifier = '{{ page.url | escapeJsString }}';
+        };
+        (function () {
+          var d = document,
+            s = d.createElement('script');
+          s.src =
+            'https://{{ theme.comments.disqus.shortname | escapeJsString }}.disqus.com/embed.js';
+          s.setAttribute('data-timestamp', +new Date());
+          (d.head || d.body).appendChild(s);
+        })();
+      </script>
+      <noscript
+        >Please enable JavaScript to view the
+        <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript
+      >
+    </section>
+  {% endif %}
+{% endif %}

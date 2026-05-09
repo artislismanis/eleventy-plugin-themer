@@ -6,6 +6,7 @@
 
 import { configureDataCascade } from './data.mjs';
 import { configurePassthroughCopy } from './assets.mjs';
+import { configureThemeConfig } from './config.mjs';
 
 /**
  * Configure all cascade systems
@@ -19,30 +20,36 @@ import { configurePassthroughCopy } from './assets.mjs';
  *
  * @param {Object} eleventyConfig - Eleventy configuration object
  * @param {string} projectRoot - Content repo root
- * @param {Object} overridePaths - Override paths configuration
+ * @param {Object} themeMetadata - Theme metadata (from resolveThemeMetadata)
+ * @param {Object} resolvedOverridePaths - Pre-resolved override paths (from resolveOverridePaths)
  *
  * @example
  * // Single call to configure all cascades
- * import { configureCascade } from 'eleventy-base-blog-template';
- * configureCascade(eleventyConfig, __dirname, overridePaths);
+ * import { configureCascade, resolveThemeMetadata } from '@eleventy-plugin-themer/core';
+ * const themeMetadata = resolveThemeMetadata(__dirname, '@eleventy-plugin-themer/theme-base');
+ * configureCascade(eleventyConfig, __dirname, themeMetadata, resolvedOverridePaths);
  */
 export function configureCascade(
-	eleventyConfig,
-	projectRoot,
-	overridePaths = {},
+  eleventyConfig,
+  projectRoot,
+  themeMetadata,
+  resolvedOverridePaths = {},
 ) {
-	// Data cascade (site.js, navigation.js, etc.)
-	configureDataCascade(eleventyConfig, projectRoot, overridePaths);
+  // Theme config cascade (colors, typography, etc.)
+  configureThemeConfig(eleventyConfig, projectRoot, themeMetadata, resolvedOverridePaths);
 
-	// Asset cascade (public files)
-	configurePassthroughCopy(eleventyConfig, projectRoot, overridePaths);
+  // Data cascade (site.js, navigation.js, etc.)
+  configureDataCascade(eleventyConfig, projectRoot, themeMetadata, resolvedOverridePaths);
 
-	// Note: Template cascade (layouts) is configured via configureTemplateEngine
-	// Note: Feature cascade is implicit (Vite handles resolution)
+  // Asset cascade (public files)
+  configurePassthroughCopy(eleventyConfig, projectRoot, themeMetadata, resolvedOverridePaths);
+
+  // Note: Template cascade (layouts) is configured via configureTemplateEngine
+  // Note: Feature cascade is implicit (Vite handles resolution)
 }
 
-// Re-export all cascade utilities for granular access
-export * from './data.mjs';
-export * from './features.mjs';
-export * from './assets.mjs';
-export * from './resolver.mjs';
+// Explicit re-exports — only what's consumed by lib/index.mjs and build-vite
+export { getAvailableFeatures, resolveFeatureEntryPath } from './features.mjs';
+export { resolveResource } from './resolver.mjs';
+export { getThemeRoot, buildPaths } from './paths.mjs';
+export { resolveThemeMetadata } from './metadata.mjs';

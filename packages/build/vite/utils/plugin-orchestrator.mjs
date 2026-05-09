@@ -1,90 +1,68 @@
 /**
- * Dynamic plugin orchestration utility
- * Automatically discovers plugins from plugins/index.mjs exports
+ * Plugin orchestration utility
+ * Maps config keys to plugin functions via explicit registry
  */
 
-import * as plugins from '../plugins/index.mjs';
+import { logger } from '@eleventy-plugin-themer/core/logger';
+
+import {
+  purgeCSSFiles,
+  generateCriticalCSS,
+  minifyHTML,
+  validateLinks,
+  preserveNonHtmlFiles,
+} from '../plugins/index.mjs';
 
 /**
- * Find plugin function by config key
- * Supports flexible matching: exact name, or fuzzy match by key words
- *
- * @param {string} configKey - Configuration key (e.g., "purgeCSS", "criticalCSS")
- * @param {Object} pluginExports - All exported plugins
- * @returns {Function|null} The matching plugin function
+ * Explicit mapping from optimization config keys to plugin functions.
+ * Add new plugins here when they are created.
  */
-function findPluginFunction(configKey, pluginExports) {
-	const lowerKey = configKey.toLowerCase();
-
-	// Try exact match first
-	if (pluginExports[configKey] && typeof pluginExports[configKey] === 'function') {
-		return pluginExports[configKey];
-	}
-
-	// Try fuzzy match: find function name containing the key words
-	// e.g., "purgeCSS" matches "purgeCSSFiles"
-	//       "criticalCSS" matches "generateCriticalCSS"
-	for (const [name, fn] of Object.entries(pluginExports)) {
-		if (typeof fn !== 'function') continue;
-
-		const lowerName = name.toLowerCase();
-
-		// Check if all significant parts of the config key are in the function name
-		// Remove common words like "generate", "create", "files"
-		const keyWords = lowerKey.replace(/files?|generate|create/g, '');
-
-		if (lowerName.includes(keyWords)) {
-			return fn;
-		}
-	}
-
-	return null;
-}
+const PLUGIN_REGISTRY = {
+  purgeCSS: purgeCSSFiles,
+  criticalCSS: generateCriticalCSS,
+  minifyHTML: minifyHTML,
+  validateLinks: validateLinks,
+  preserveNonHtml: preserveNonHtmlFiles,
+};
 
 /**
  * Run optimization plugins based on configuration
- * Automatically discovers available plugins from plugins/index.mjs
  *
- * @param {Object} optimizations - Optimization configuration (key: true|false|function)
+ * All plugins follow a uniform signature: (outputDir, options) => Promise<void>
+ * The dirs object is merged into options so plugins can access temp, output, etc.
+ *
+ * @param {Object} optimizations - Optimization configuration (key: true|false|function|object)
  * @param {Object} dirs - Directory configuration
  * @param {string} dirs.output - Output directory (required)
- * @param {string} [dirs.temp] - Temp directory (required for preserveNonHtml)
+ * @param {string} [dirs.temp] - Temp directory (optional, passed to plugins via options)
  */
 export async function runOptimizations(optimizations, dirs) {
-	if (!dirs || !dirs.output) {
-		throw new Error('runOptimizations: dirs.output is required');
-	}
+  for (const [name, config] of Object.entries(optimizations)) {
+    // Skip if optimization is disabled
+    if (!config) continue;
 
-	for (const [name, config] of Object.entries(optimizations)) {
-		// Skip if optimization is disabled
-		if (!config) continue;
+    // Custom function provided
+    if (typeof config === 'function') {
+      await config();
+      continue;
+    }
 
-		// Custom function provided
-		if (typeof config === 'function') {
-			await config();
-			continue;
-		}
+    // Built-in plugin
+    if (config === true || typeof config === 'object') {
+      const pluginFn = PLUGIN_REGISTRY[name];
 
-		// Built-in plugin
-		if (config === true) {
-			const pluginFn = findPluginFunction(name, plugins);
+      if (!pluginFn) {
+        logger.warn(
+          `⚠️  No plugin found for optimization: "${name}". Available: ${Object.keys(PLUGIN_REGISTRY).join(', ')}`,
+        );
+        continue;
+      }
 
-			if (!pluginFn) {
-				console.warn(`⚠️  No plugin found for optimization: ${name}`);
-				continue;
-			}
+      // Merge dirs into options so plugins have access to all paths
+      const userOptions = typeof config === 'object' ? config : {};
+      const options = { ...dirs, ...userOptions };
 
-			// preserveNonHtml needs both temp and output, others just need output
-			if (name === 'preserveNonHtml') {
-				if (!dirs.temp) {
-					throw new Error(
-						'preserveNonHtml optimization requires dirs.temp to be specified',
-					);
-				}
-				await pluginFn(dirs.temp, dirs.output);
-			} else {
-				await pluginFn(dirs.output);
-			}
-		}
-	}
+      await pluginFn(dirs.output, options);
+    }
+  }
 }

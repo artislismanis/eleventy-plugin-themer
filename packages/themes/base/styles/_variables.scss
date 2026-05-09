@@ -1,37 +1,93 @@
 // ============================================
 // CSS Custom Properties (Variables)
 // ============================================
+//
+// These reference theme config values injected in <head> by theme-styles.njk
+// Pattern: var(--theme-light-*, fallback) for light theme
+//          var(--theme-dark-*, fallback) for dark theme
+//
+// The theme config (theme.json) provides default colors.
+// Users can override via content/_data/theme.js
 
+// ============================================
+// Light Theme (Default)
+// ============================================
 :root {
-	// Typography
-	--font-family: -apple-system, system-ui, sans-serif;
-	--font-family-monospace:
-		'Consolas', 'Menlo', 'Monaco', 'Andale Mono WT', 'Andale Mono',
-		'Lucida Console', 'Lucida Sans Typewriter', 'DejaVu Sans Mono',
-		'Bitstream Vera Sans Mono', 'Liberation Mono', 'Nimbus Mono L',
-		'Courier New', 'Courier', 'monospace';
+  // Typography - use theme config with fallbacks
+  --font-family: var(--theme-font-family, -apple-system, system-ui, sans-serif);
+  --font-family-heading: var(--theme-font-family-heading, inherit);
+  --font-family-monospace: var(
+    --theme-font-family-mono,
+    'Consolas',
+    'Monaco',
+    'Andale Mono',
+    'Liberation Mono',
+    'Courier New',
+    monospace
+  );
+  --font-size: var(--theme-font-size, 1rem);
+  --line-height: var(--theme-line-height, 1.6);
 
-	// Colours - Light Mode
-	--color-gray-20: #e0e0e0;
-	--color-gray-50: #c0c0c0;
-	--color-gray-90: #333;
-	--background-color: #fff;
-	--text-color: var(--color-gray-90);
-	--text-color-link: #082840;
-	--text-color-link-active: #5f2b48;
-	--text-color-link-visited: #17050f;
+  // Colors - Light theme (default)
+  --color-background: var(--theme-light-background, #fff);
+  --color-surface: var(--theme-light-surface, #deebf7);
+  --color-primary: var(--theme-light-primary, #172c51);
+  --color-secondary: var(--theme-light-secondary, #5b9bd5);
+  --color-accent: var(--theme-light-accent, #ca7033);
+  --color-text: var(--theme-light-text, #172c51);
+  --color-text-muted: var(--theme-light-text-muted, #4a5568);
+  --color-link: var(--theme-light-link, #5b9bd5);
+  --color-link-hover: var(--theme-light-link-hover, #172c51);
+  --color-border: var(--theme-light-border, #deebf7);
 
-	// Syntax Highlighting
-	--syntax-tab-size: 2;
+  // Status colors
+  --color-success: #22c55e;
+  --color-error: #ef4444;
 
-	// Dark Mode
-	@media (prefers-color-scheme: dark) {
-		--color-gray-20: #e0e0e0;
-		--color-gray-50: #c0c0c0;
-		--color-gray-90: #dad8d8;
-		--text-color-link: #1493fb;
-		--text-color-link-active: #6969f7;
-		--text-color-link-visited: #a6a6f8;
-		--background-color: #15202b;
-	}
+  // Syntax Highlighting
+  --syntax-tab-size: 2;
+}
+
+// ============================================
+// Dark Theme - System Preference
+// ============================================
+// Applies when system prefers dark AND user hasn't explicitly set light
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-background: var(--theme-dark-background, #0f172a);
+    --color-surface: var(--theme-dark-surface, #1e293b);
+    --color-primary: var(--theme-dark-primary, #5b9bd5);
+    --color-secondary: var(--theme-dark-secondary, #ca7033);
+    --color-accent: var(--theme-dark-accent, #ca7033);
+    --color-text: var(--theme-dark-text, #e2e8f0);
+    --color-text-muted: var(--theme-dark-text-muted, #94a3b8);
+    --color-link: var(--theme-dark-link, #5b9bd5);
+    --color-link-hover: var(--theme-dark-link-hover, #ca7033);
+    --color-border: var(--theme-dark-border, #334155);
+
+    // Status colors (lighter for dark mode)
+    --color-success: #4ade80;
+    --color-error: #f87171;
+  }
+}
+
+// ============================================
+// Dark Theme - Manual Override
+// ============================================
+// Applies when user explicitly selects dark mode via toggle
+:root[data-theme='dark'] {
+  --color-background: var(--theme-dark-background, #0f172a);
+  --color-surface: var(--theme-dark-surface, #1e293b);
+  --color-primary: var(--theme-dark-primary, #5b9bd5);
+  --color-secondary: var(--theme-dark-secondary, #ca7033);
+  --color-accent: var(--theme-dark-accent, #ca7033);
+  --color-text: var(--theme-dark-text, #e2e8f0);
+  --color-text-muted: var(--theme-dark-text-muted, #94a3b8);
+  --color-link: var(--theme-dark-link, #5b9bd5);
+  --color-link-hover: var(--theme-dark-link-hover, #ca7033);
+  --color-border: var(--theme-dark-border, #334155);
+
+  // Status colors (lighter for dark mode)
+  --color-success: #4ade80;
+  --color-error: #f87171;
 }

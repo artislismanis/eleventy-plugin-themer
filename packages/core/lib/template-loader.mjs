@@ -1,109 +1,107 @@
-import Nunjucks from 'nunjucks';
 import path from 'path';
-import { getThemeRoot } from './cascade/resolver.mjs';
+
+import Nunjucks from 'nunjucks';
+
+import { getThemeRoot, buildPaths } from './cascade/paths.mjs';
 
 /**
- * Custom Nunjucks loader that supports @theme/ prefix
- * and implements cascade resolution for layouts, partials, and includes.
+ * Creates and configures a Nunjucks environment with a theme-aware loader.
+ * This function encapsulates all Nunjucks-specific logic.
  *
- * Resolution order:
- * 1. @theme/ prefix → theme package directory (explicit)
- * 2. User overrides directory (checked first for non-prefixed)
- * 3. Theme directory (fallback for non-prefixed)
+ * @param {Object} eleventyConfig - Eleventy configuration object
+ * @param {Object} options - Configuration options
+ * @returns {Nunjucks.Environment}
+ * @private
  */
-export class ThemeAwareLoader extends Nunjucks.FileSystemLoader {
-	constructor(searchPaths, opts, themeBasePath) {
-		super(searchPaths, opts);
-		this.themeBasePath = themeBasePath;
-	}
+function _configureNunjucksEngine(eleventyConfig, options) {
+  const {
+    projectRoot,
+    themeName,
+    overridePaths: resolvedOverridePaths,
+    additionalPaths = [],
+  } = options;
 
-	getSource(name) {
-		// Handle @theme/ prefix - explicit theme reference
-		if (name.startsWith('@theme/')) {
-			const themePath = name.replace('@theme/', '');
-			const fullPath = path.join(this.themeBasePath, themePath);
-			return super.getSource(fullPath);
-		}
+  const themeBasePath = getThemeRoot(projectRoot, themeName);
 
-		// Default behavior: cascade through search paths
-		// (user overrides checked first, then theme)
-		return super.getSource(name);
-	}
+  /**
+   * Custom Nunjucks loader that supports @theme/ prefix.
+   * Relies on an ordered list of search paths to implement the cascade.
+   */
+  class ThemeAwareLoader extends Nunjucks.FileSystemLoader {
+    constructor(searchPaths, opts) {
+      super(searchPaths, opts);
+      this.themeBasePath = themeBasePath;
+    }
+
+    getSource(name) {
+      if (name.startsWith('@theme/')) {
+        const themePath = name.replace('@theme/', '');
+        const fullPath = path.resolve(this.themeBasePath, themePath);
+        // Prevent path traversal outside the theme directory
+        if (
+          !fullPath.startsWith(this.themeBasePath + path.sep) &&
+          fullPath !== this.themeBasePath
+        ) {
+          throw new Error(`Path traversal detected in @theme/ path: "${themePath}"`);
+        }
+        return super.getSource(fullPath);
+      }
+      return super.getSource(name);
+    }
+  }
+
+  // Dynamically build search paths using cascade resolver logic.
+  // The order is critical: user overrides must come before theme defaults.
+  const layouts = buildPaths(projectRoot, themeName, resolvedOverridePaths, 'layouts');
+  const searchPaths = [
+    // User overrides (highest priority)
+    layouts.userDir,
+    path.join(layouts.userDir, 'partials'),
+    ...additionalPaths.map((p) => path.join(projectRoot, p)),
+    // Theme fallbacks (lowest priority)
+    layouts.themeDir,
+    path.join(layouts.themeDir, 'partials'),
+  ];
+
+  const loader = new ThemeAwareLoader(searchPaths, {
+    noCache: process.env.NODE_ENV !== 'production',
+  });
+
+  const nunjucksEnv = new Nunjucks.Environment(loader, {
+    autoescape: false,
+  });
+
+  nunjucksEnv.addGlobal('theme', {
+    name: themeName,
+    path: (relativePath) => `@theme/${relativePath}`,
+  });
+
+  eleventyConfig.setLibrary('njk', nunjucksEnv);
+
+  return nunjucksEnv;
 }
 
 /**
- * Configure template engine with theme support
+ * Configure template engine with theme support.
  *
- * Generic API for template engine configuration. Currently implements Nunjucks,
- * but naming is intentionally technology-agnostic for future extensibility.
- *
- * Resolution order for layouts, partials, and includes:
- * 1. @theme/ prefix → theme package directory (explicit)
- * 2. User overrides directory (checked first for non-prefixed)
- * 3. Theme directory (fallback for non-prefixed)
- *
- * This cascade applies to:
- * - {% extends "base.njk" %} → finds user override or theme layout
- * - {% include "partials/header.njk" %} → finds user override or theme partial
- * - {% from "macros/buttons.njk" import btn %} → finds user override or theme macro
+ * This is a generic, technology-agnostic public API. It acts as a dispatcher
+ * to select the appropriate engine-specific configuration function.
  *
  * @param {Object} eleventyConfig - Eleventy configuration object
  * @param {Object} options - Configuration options
  * @param {string} options.projectRoot - Path to content repo root
  * @param {string} options.themeName - Theme package name
  * @param {Object} options.overridePaths - Content repo override paths
- * @param {string[]} options.additionalPaths - Extra paths for layout resolution
- * @returns {Object} Template environment (Nunjucks environment for current implementation)
+ * @param {string} [options.engine='nunjucks'] - The template engine to configure.
+ * @returns {Object} The configured template engine environment.
  */
 export function configureTemplateEngine(eleventyConfig, options = {}) {
-	const {
-		projectRoot = process.cwd(),
-		themeName,
-		overridePaths = {},
-		additionalPaths = [],
-	} = options;
+  const { engine = 'nunjucks' } = options;
 
-	const themeBasePath = getThemeRoot(projectRoot, themeName);
-
-	// Build search paths in priority order (first match wins)
-	// User paths come first, theme paths are fallback
-	const searchPaths = [
-		// User overrides (highest priority)
-		path.join(projectRoot, overridePaths.layouts || 'overrides/layouts'),
-		path.join(
-			projectRoot,
-			overridePaths.layouts || 'overrides/layouts',
-			'partials',
-		),
-		path.join(projectRoot, 'overrides/includes'),
-		path.join(projectRoot, 'overrides/macros'),
-
-		// Additional user-specified paths
-		...additionalPaths.map((p) => path.join(projectRoot, p)),
-
-		// Theme fallbacks (lowest priority)
-		path.join(themeBasePath, 'layouts'),
-		path.join(themeBasePath, 'layouts/partials'),
-		path.join(themeBasePath, 'includes'),
-		path.join(themeBasePath, 'macros'),
-	];
-
-	const loader = new ThemeAwareLoader(
-		searchPaths,
-		{ noCache: process.env.NODE_ENV !== 'production' },
-		themeBasePath,
-	);
-
-	const nunjucksEnv = new Nunjucks.Environment(loader);
-
-	// Add theme-aware globals
-	nunjucksEnv.addGlobal('theme', {
-		name: themeName,
-		// Helper to construct theme paths in templates
-		path: (relativePath) => `@theme/${relativePath}`,
-	});
-
-	eleventyConfig.setLibrary('njk', nunjucksEnv);
-
-	return nunjucksEnv;
+  switch (engine) {
+    case 'nunjucks':
+      return _configureNunjucksEngine(eleventyConfig, options);
+    default:
+      throw new Error(`Template engine "${engine}" is not supported by the theme framework.`);
+  }
 }

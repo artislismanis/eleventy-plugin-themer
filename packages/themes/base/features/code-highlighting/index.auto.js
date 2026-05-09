@@ -9,7 +9,7 @@
  * Usage in front matter:
  *   ---
  *   title: My Post
- *   pageBundle: code-highlighting.auto
+ *   feature: code-highlighting
  *   ---
  */
 import { init } from './index.js';

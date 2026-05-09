@@ -1,150 +1,167 @@
-# @eleventy-themes/core
+# @eleventy-plugin-themer/core
 
-Build-agnostic cascade system for Eleventy themes.
+Build-agnostic cascade system for Eleventy themes. Works with any build tool or no build tool at all.
 
 ## Features
 
-- **Template Loading** - ThemeAwareLoader with `@theme` alias for Nunjucks
-- **Data Cascade** - User data files override theme defaults
-- **Static Assets Cascade** - User assets override theme assets
-- **Feature Resolution** - Discover and resolve features from user or theme
+- **Template Loading** - ThemeAwareLoader with `@theme/` alias for Nunjucks
+- **Data Cascade** - User data files override theme defaults via Eleventy's native data cascade
+- **Static Assets Cascade** - User assets override theme assets by filename
+- **Feature Resolution** - Discover and resolve features from user or theme directories
+- **Theme Configuration** - Deep-merged theme config accessible in templates as `{{ theme.* }}`
 - **Theme Validation** - Helpful errors with suggested fixes
-- **Self-Describing Metadata** - Themes export their structure as data
 
 ## Installation
 
 ```bash
-npm install @eleventy-themes/core
+npm install @eleventy-plugin-themer/core
 ```
+
+Requires Node.js 22+.
 
 ## Usage
 
-### Creating a Theme
+### Using a Theme (Content Site)
 
 ```js
-// my-theme/lib/index.mjs
-import { createThemePlugin } from '@eleventy-themes/core';
-import themeMetadata from '../theme.json' assert { type: 'json' };
-import filters from './filters.mjs';
-import shortcodes from './shortcodes.mjs';
+// eleventy.config.mjs
+import { eleventyPluginThemer, generateDirConfig } from '@eleventy-plugin-themer/core';
 
-export const plugin = createThemePlugin(themeMetadata, {
-  helpers: {
-    filters,
-    shortcodes,
-  },
-});
+const THEME_NAME = '@eleventy-plugin-themer/theme-base';
 
-export { themeMetadata as metadata };
-```
+export default async function (eleventyConfig) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-### Using a Theme
+  // Register theme plugin - handles metadata, helpers, template engine, layout aliases
+  await eleventyConfig.addPlugin(eleventyPluginThemer, {
+    theme: THEME_NAME,
+    projectRoot: __dirname,
+  });
 
-```js
-// eleventy.config.js
-import { plugin as myTheme } from 'my-theme';
-
-export default function (eleventyConfig) {
-  eleventyConfig.addPlugin(myTheme);
+  // Use theme's dir configuration with cascade support
+  return {
+    ...generateDirConfig({
+      theme: THEME_NAME,
+      projectRoot: __dirname,
+      input: 'content',
+      output: '_site',
+    }),
+  };
 }
 ```
 
-## API
+### Override Paths
 
-### `createThemePlugin(themeMetadata, options)`
+By default, user overrides are expected at these locations:
 
-Creates an Eleventy plugin from theme metadata.
+| Resource | Default Path         |
+| -------- | -------------------- |
+| layouts  | `overrides/layouts`  |
+| features | `overrides/features` |
+| styles   | `overrides/styles`   |
+| scripts  | `overrides/scripts`  |
+| data     | `content/_data`      |
+| public   | `public`             |
 
-**Parameters:**
-- `themeMetadata` (Object) - Theme specification from theme.json
-- `options` (Object) - Configuration options
-  - `helpers` (Object) - Theme helpers
-    - `filters` (Object) - Nunjucks filters
-    - `shortcodes` (Object) - Nunjucks shortcodes
-    - `transforms` (Object) - Eleventy transforms
+Override with custom paths:
 
-**Returns:** Function - Eleventy plugin function
-
-**Example:**
 ```js
-const plugin = createThemePlugin(metadata, {
-  helpers: {
-    filters: {
-      uppercase: (str) => str.toUpperCase(),
-    },
+await eleventyConfig.addPlugin(eleventyPluginThemer, {
+  theme: THEME_NAME,
+  projectRoot: __dirname,
+  overridePaths: {
+    layouts: 'my-layouts',
+    data: 'src/_data',
   },
 });
 ```
 
-### Cascade Functions
+## Public API
 
-#### `resolveLayout(layoutName, projectRoot, overridePaths)`
+### `eleventyPluginThemer(eleventyConfig, options)`
 
-Resolve layout file (user overrides theme).
+Eleventy plugin that handles theme registration. Sets up:
 
-**Parameters:**
-- `layoutName` (string) - Layout name (e.g., 'base')
+- Theme metadata resolution from `package.json` + `theme.json`
+- Filter, shortcode, and paired shortcode registration from the theme module
+- Nunjucks template engine with `@theme/` prefix support
+- Layout alias registration with cascade resolution
+- Theme metadata available as `themeMetadata` global data
+
+**Options:**
+
+- `theme` (string, required) - Theme package name
+- `projectRoot` (string, required) - Path to content repo root
+- `overridePaths` (Object) - Override paths configuration
+
+**Returns:** `{ themeMetadata, resolvedOverridePaths }`
+
+### `generateDirConfig(options)`
+
+Generates Eleventy `dir` configuration for use in the config return value.
+
+**Options:**
+
+- `theme` (string, required) - Theme package name
 - `projectRoot` (string) - Project root path
-- `overridePaths` (Object) - Override paths config
+- `input` (string) - Input directory
+- `output` (string) - Output directory
 
-**Returns:** Object - `{ path, source }` where source is 'user' or 'theme'
+**Returns:** `{ dir: { input, output, includes } }`
 
-#### `resolveDataFile(dataName, projectRoot, overridePaths)`
+### `resolveThemeMetadata(projectRoot, themeName)`
 
-Resolve data file (user overrides theme).
+Load theme metadata by merging `package.json` and `theme.json` from the theme package.
 
-#### `resolveFeaturePath(featureName, projectRoot, overridePaths)`
+### `getAvailableFeatures(projectRoot, themeMetadata, resolvedOverridePaths?)`
 
-Resolve feature file (user overrides theme).
+Discover all available features (theme + user) with source tracking.
 
-#### `resolveStaticAsset(assetPath, projectRoot, overridePaths)`
+**Returns:** `Map<string, { name, source, path }>` where source is `'theme'`, `'user'`, or `'override'`
 
-Resolve static asset (user overrides theme).
+## Creating a Theme
 
-### Validation
+A theme package needs:
 
-#### `validateTheme(themeMetadata)`
+1. **`package.json`** - Standard npm package with `name` and `version`
+2. **`theme.json`** - Theme metadata (features, assets, config defaults)
+3. **`lib/index.mjs`** - Default export with `filters`, `shortcodes`, `pairedShortcodes`
+4. **`layouts/`** - Nunjucks layout templates
+5. **`styles/`** - SCSS/CSS stylesheets
+6. **`scripts/`** - JavaScript entry points
+7. **`features/`** - Optional feature subdirectories with `index.js` / `index.auto.js`
 
-Validate theme metadata structure.
-
-**Returns:** Object - `{ valid, errors }` where errors is array of validation errors
-
-#### `logValidation(validationResult)`
-
-Log validation results to console with helpful formatting.
-
-## Theme Metadata Format
+### theme.json
 
 ```json
 {
-  "name": "my-theme",
-  "version": "1.0.0",
-  "paths": {
-    "layouts": "layouts",
-    "features": "features",
-    "styles": "styles",
-    "scripts": "scripts",
-    "data": "data",
-    "public": "public"
+  "$schema": "../../core/theme.schema.json",
+  "themeFeatures": [
+    { "name": "code-highlighting", "entry": "features/code-highlighting/index.js" }
+  ],
+  "assets": {
+    "styles": { "entry": "styles/main.scss" },
+    "scripts": { "entry": "scripts/main.js" }
   },
-  "defaultOverridePaths": {
-    "layouts": "overrides/layouts",
-    "features": "overrides/features",
-    "data": "content/_data",
-    "public": "public"
+  "config": {
+    "colors": { "light": { "primary": "#172c51" } },
+    "typography": { "fontFamily": "system-ui, sans-serif" }
   }
 }
 ```
 
-See `@eleventy-themes/base-blog` for a complete example.
+The `config` section provides defaults accessible in templates as `{{ theme.colors.light.primary }}`. Users override via `content/_data/theme.js`.
 
-## Philosophy
+## Cascade Resolution
 
-**Build-agnostic** - Works with any build tool or no build tool. The core cascade system has zero build tool dependencies.
+All resources follow the same priority: **user files win over theme files**.
 
-**User-first** - User files always win in cascade resolution.
+- Layouts: user's `overrides/layouts/post.njk` overrides theme's `layouts/post.njk`
+- Data: user's `content/_data/site.js` overrides theme's `data/site.js`
+- Features: user's `overrides/features/code-highlighting/` overrides theme's `features/code-highlighting/`
+- Assets: user's `public/favicon.svg` overrides theme's `public/favicon.svg`
 
-**Convention over configuration** - Sensible defaults, minimal setup required.
+See [@eleventy-plugin-themer/theme-base](../themes/base/README.md) for a complete theme example.
 
 ## License
 

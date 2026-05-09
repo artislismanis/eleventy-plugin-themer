@@ -1,51 +1,63 @@
 {
-	"name": "@eleventy-plugin-themer/build-vite",
-	"version": "3.0.0",
-	"description": "Opinionated Vite integration with production optimizations for Eleventy themes",
-	"type": "module",
-	"main": "index.mjs",
-	"exports": {
-		".": "./index.mjs",
-		"./plugins": "./plugins/index.mjs",
-		"./plugins/*": "./plugins/*.mjs"
-	},
-	"files": [
-		"plugins/",
-		"utils/",
-		"index.mjs",
-		"theme-config.mjs",
-		"README.md",
-		"LICENSE"
-	],
-	"keywords": [
-		"eleventy",
-		"eleventy-theme",
-		"vite",
-		"production-optimization",
-		"purgecss",
-		"critical-css",
-		"html-minification"
-	],
-	"author": "Artis Lismanis",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
-		"directory": "packages/build/vite"
-	},
-	"dependencies": {
-		"@eleventy-plugin-themer/core": "^3.0.0",
-		"glob": "^13.0.0",
-		"purgecss": "^6.0.0",
-		"critters": "^0.0.24",
-		"html-minifier-terser": "^7.2.0",
-		"node-html-parser": "^7.0.1"
-	},
-	"peerDependencies": {
-		"vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
-		"@11ty/eleventy-plugin-vite": "^7.0.0"
-	},
-	"engines": {
-		"node": ">=22"
-	}
+  "name": "@eleventy-plugin-themer/build-vite",
+  "version": "3.0.0",
+  "description": "Opinionated Vite integration with production optimizations for Eleventy themes",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./plugins": "./plugins/index.mjs",
+    "./plugins/*": "./plugins/*.mjs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "files": [
+    "plugins/",
+    "utils/",
+    "index.mjs",
+    "theme-config.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "eleventy",
+    "eleventy-theme",
+    "vite",
+    "production-optimization",
+    "purgecss",
+    "critical-css",
+    "html-minification"
+  ],
+  "author": "Artis Lismanis",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
+    "directory": "packages/build/vite"
+  },
+  "bugs": {
+    "url": "https://github.com/artislismanis/eleventy-plugin-themer/issues"
+  },
+  "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/build/vite#readme",
+  "dependencies": {
+    "@eleventy-plugin-themer/core": "^3.0.0",
+    "glob": "^13.0.0",
+    "purgecss": "^6.0.0",
+    "critters": "^0.0.24",
+    "html-minifier-terser": "^7.2.0",
+    "node-html-parser": "^7.0.1"
+  },
+  "peerDependencies": {
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
+    "@11ty/eleventy-plugin-vite": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

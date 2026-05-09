@@ -3,96 +3,57 @@
  *
  * Manages JavaScript features with user override support.
  * Page-specific features can be loaded via front matter:
- *   pageFeature: 'code-highlighting'
- *   pageFeatures: ['code-highlighting', 'gallery']
+ *   feature: 'code-highlighting'
+ *   features: ['code-highlighting', 'gallery']
  */
 
 import path from 'path';
 import fs from 'fs';
-import { resolveOverridePaths } from '../defaults.mjs';
-import { resolveResource, resourceExists, getThemeRoot } from './resolver.mjs';
+
+import { FEATURE_CONVENTIONS, DEFAULT_OVERRIDE_PATHS } from '../defaults.mjs';
+
+import { getThemeRoot } from './paths.mjs';
+import { determineUserSource } from './resolver.mjs';
 
 /**
- * Resolve feature path with cascade support
+ * Resolve feature entry point path, preferring auto-init variant
  *
- * Checks user override directory first, then falls back to theme features.
- * Throws helpful error if feature not found.
+ * For production builds, we prefer index.auto.js (auto-initializing) over index.js.
+ * This allows features to work without explicit init() calls in HTML.
  *
- * @param {string} featureName - Feature name (without .js extension)
- * @param {string} projectRoot - Content repo root
- * @param {Object} themeMetadata - Theme metadata object
- * @param {Object} overridePaths - Override paths configuration (optional)
- * @returns {string} Absolute path to feature
- * @throws {Error} If feature not found
+ * Resolution order for each location:
+ * 1. index.auto.js (preferred - auto-initializes on load)
+ * 2. index.js (fallback - requires manual initialization)
  *
- * @example
- * // Resolve feature (checks user override first, then theme)
- * const featurePath = resolveFeaturePath('code-highlighting', __dirname, themeMetadata);
+ * @param {string} featureDir - Directory path containing the feature
+ * @returns {string|null} Path to feature entry point, or null if not found
  */
-export function resolveFeaturePath(
-	featureName,
-	projectRoot,
-	themeMetadata,
-	overridePaths = {},
-) {
-	const resolved = resolveOverridePaths(themeMetadata, overridePaths);
-	const result = resolveResource({
-		projectRoot,
-		themeName: themeMetadata.name,
-		resolvedOverridePaths: resolved,
-		resourceType: 'features',
-		filename: `${featureName}.js`,
-		throwOnMissing: true,
-		errorMessage: createFeatureErrorMessage(
-			featureName,
-			themeMetadata,
-			resolved,
-		),
-	});
+export function resolveFeatureEntryPath(featureDir) {
+  const autoPath = path.join(featureDir, FEATURE_CONVENTIONS.autoInit);
+  const regularPath = path.join(featureDir, FEATURE_CONVENTIONS.entry);
 
-	return result.path;
-}
-
-/**
- * Check if a feature exists (in user or theme)
- *
- * @param {string} featureName - Feature name (without .js extension)
- * @param {string} projectRoot - Content repo root
- * @param {Object} themeMetadata - Theme metadata object
- * @param {Object} overridePaths - Override paths configuration (optional)
- * @returns {boolean} True if feature exists
- *
- * @example
- * if (featureExists('gallery', __dirname, themeMetadata)) {
- *   console.log('Gallery feature is available');
- * }
- */
-export function featureExists(
-	featureName,
-	projectRoot,
-	themeMetadata,
-	overridePaths = {},
-) {
-	const resolved = resolveOverridePaths(themeMetadata, overridePaths);
-	return resourceExists(
-		projectRoot,
-		themeMetadata.name,
-		resolved,
-		'features',
-		`${featureName}.js`,
-	);
+  if (fs.existsSync(autoPath)) {
+    return autoPath;
+  }
+  if (fs.existsSync(regularPath)) {
+    return regularPath;
+  }
+  return null;
 }
 
 /**
  * Get all available features (theme + user)
  *
- * Features are stored in subdirectories with index.js entry points:
- * - Theme: features/code-highlighting/index.js (from themeFeatures metadata)
- * - User: overrides/features/code-highlighting/index.js (filesystem scan)
+ * Features are stored in subdirectories with entry points:
+ * - Theme: features/code-highlighting/index.auto.js or index.js
+ * - User: overrides/features/code-highlighting/index.auto.js or index.js
+ *
+ * Entry point resolution prefers auto-init variants (index.auto.js) over
+ * manual init (index.js) for production builds.
  *
  * @param {string} projectRoot - Content repo root
  * @param {Object} themeMetadata - Theme metadata from theme.json
- * @param {Object} overridePaths - Override paths configuration (optional)
+ * @param {Object} resolvedOverridePaths - Pre-resolved override paths (optional)
  * @returns {Map<string, Object>} Map of feature name to feature info
  *   Each feature info contains: { name, source, path }
  *   Source is: 'theme', 'user', or 'override'
@@ -104,85 +65,51 @@ export function featureExists(
  *   console.log(`${name}: ${info.source} (${info.path})`);
  * });
  */
-export function getAvailableFeatures(
-	projectRoot,
-	themeMetadata,
-	overridePaths = {},
-) {
-	const resolved = resolveOverridePaths(themeMetadata, overridePaths);
-	const featuresPath = resolved.features;
-	const features = new Map();
+export function getAvailableFeatures(projectRoot, themeMetadata, resolvedOverridePaths = {}) {
+  const featuresPath = resolvedOverridePaths.features ?? DEFAULT_OVERRIDE_PATHS.features;
+  const features = new Map();
 
-	// Add theme features from themeMetadata (explicit definition)
-	if (
-		themeMetadata.themeFeatures &&
-		Array.isArray(themeMetadata.themeFeatures)
-	) {
-		const themeRoot = getThemeRoot(projectRoot, themeMetadata.name);
+  // Add theme features from themeMetadata (explicit definition)
+  if (themeMetadata.themeFeatures && Array.isArray(themeMetadata.themeFeatures)) {
+    const themeRoot = getThemeRoot(projectRoot, themeMetadata.name);
 
-		themeMetadata.themeFeatures.forEach((feature) => {
-			const featurePath = path.join(themeRoot, feature.entry);
-			if (fs.existsSync(featurePath)) {
-				features.set(feature.name, {
-					name: feature.name,
-					source: 'theme',
-					path: featurePath,
-				});
-			}
-		});
-	}
+    themeMetadata.themeFeatures.forEach((feature) => {
+      // Get feature directory from entry path
+      const featureDir = path.join(themeRoot, path.dirname(feature.entry));
+      // Resolve entry point preferring auto-init variant
+      const featurePath = resolveFeatureEntryPath(featureDir);
 
-	// Check for user feature overrides/additions (subdirectories with index.js)
-	const userFeaturesDir = path.join(projectRoot, featuresPath);
-	if (fs.existsSync(userFeaturesDir)) {
-		// Scan for subdirectories
-		fs.readdirSync(userFeaturesDir, { withFileTypes: true })
-			.filter((dirent) => dirent.isDirectory())
-			.forEach((dirent) => {
-				const featureName = dirent.name;
-				const indexPath = path.join(userFeaturesDir, featureName, 'index.js');
+      if (featurePath) {
+        features.set(feature.name, {
+          name: feature.name,
+          source: 'theme',
+          path: featurePath,
+        });
+      }
+    });
+  }
 
-				if (fs.existsSync(indexPath)) {
-					const isOverride = features.has(featureName);
-					features.set(featureName, {
-						name: featureName,
-						source: isOverride ? 'override' : 'user',
-						path: indexPath,
-					});
-				}
-			});
-	}
+  // Check for user feature overrides/additions (subdirectories)
+  const userFeaturesDir = path.join(projectRoot, featuresPath);
+  if (fs.existsSync(userFeaturesDir)) {
+    // Scan for subdirectories
+    fs.readdirSync(userFeaturesDir, { withFileTypes: true })
+      .filter((dirent) => dirent.isDirectory())
+      .forEach((dirent) => {
+        const featureName = dirent.name;
+        const featureDir = path.join(userFeaturesDir, featureName);
+        // Resolve entry point preferring auto-init variant
+        const featurePath = resolveFeatureEntryPath(featureDir);
 
-	return features;
-}
+        if (featurePath) {
+          features.set(featureName, {
+            name: featureName,
+            source: determineUserSource(features, featureName),
+            path: featurePath,
+          });
+        }
+      });
+  }
 
-/**
- * Helper: Create helpful error message for missing features
- *
- * @param {string} featureName - Missing feature name
- * @param {Object} themeMetadata - Theme metadata object
- * @param {Object} resolvedPaths - Resolved override paths
- * @returns {string} Formatted error message
- * @private
- */
-function createFeatureErrorMessage(featureName, themeMetadata, resolvedPaths) {
-	// Get available theme features from metadata
-	const themeFeatures = themeMetadata.themeFeatures || [];
-	const availableFeatures =
-		themeFeatures.length > 0
-			? themeFeatures.map((f) => f.name).join(', ')
-			: 'none';
-
-	const userFeatureDir = resolvedPaths.features;
-
-	return (
-		`Feature "${featureName}" not found.\n\n` +
-		`Available theme features: ${availableFeatures}\n\n` +
-		`To create a custom feature:\n` +
-		`  1. Create directory: ${userFeatureDir}/${featureName}/\n` +
-		`  2. Add file: ${userFeatureDir}/${featureName}/index.js\n\n` +
-		`To extend a theme feature:\n` +
-		`  import { init } from '@theme/features/${featureName}/index.js';\n` +
-		`  init({ /* custom config */ });\n`
-	);
+  return features;
 }

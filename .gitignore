@@ -1,4 +1,35 @@
+# Dependencies
 node_modules/
+
+# Build output
+_site/
+dist/
+.11ty-vite/
+
+# Coverage
+coverage/
+
+# Logs
 *.log
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AI tools
 .aider*
+.claude/
+
+# npm
+*.tgz

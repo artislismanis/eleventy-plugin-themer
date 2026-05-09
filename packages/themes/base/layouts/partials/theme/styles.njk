@@ -1,0 +1,31 @@
+{# Theme styles partial - Injects CSS custom properties from theme.json config #}
+<!-- prettier-ignore-start -->
+{% if theme and theme.colors %}
+<style>
+  :root {
+    {# Light theme colors #}
+    {% if theme.colors.light %}
+    {% for key, value in theme.colors.light %}
+    --theme-light-{{ key | slugify }}: {{ value | escapeCssValue }};
+    {% endfor %}
+    {% endif %}
+
+    {# Dark theme colors #}
+    {% if theme.colors.dark %}
+    {% for key, value in theme.colors.dark %}
+    --theme-dark-{{ key | slugify }}: {{ value | escapeCssValue }};
+    {% endfor %}
+    {% endif %}
+
+    {# Typography #}
+    {% if theme.typography %}
+    {% if theme.typography.fontFamily %}--theme-font-family: {{ theme.typography.fontFamily | escapeCssValue }};{% endif %}
+    {% if theme.typography.fontFamilyHeading %}--theme-font-family-heading: {{ theme.typography.fontFamilyHeading | escapeCssValue }};{% endif %}
+    {% if theme.typography.fontFamilyMono %}--theme-font-family-mono: {{ theme.typography.fontFamilyMono | escapeCssValue }};{% endif %}
+    {% if theme.typography.fontSize %}--theme-font-size: {{ theme.typography.fontSize | escapeCssValue }};{% endif %}
+    {% if theme.typography.lineHeight %}--theme-line-height: {{ theme.typography.lineHeight | escapeCssValue }};{% endif %}
+    {% endif %}
+  }
+</style>
+{% endif %}
+<!-- prettier-ignore-end -->
