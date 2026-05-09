@@ -300,6 +300,20 @@ eleventyNavigation:
 
 Footer navigation uses `parent: footer`. Hierarchical pages get automatic breadcrumbs.
 
+## Security helpers
+
+Nunjucks runs with `autoescape: false` in this framework, so the theme exports a set of escape filters that **must** be applied explicitly to any dynamic value:
+
+| Filter           | Use for                                                                 |
+| ---------------- | ----------------------------------------------------------------------- |
+| `escapeHtml`     | Text in HTML body context                                               |
+| `escapeAttr`     | Values inside `="…"` attributes                                         |
+| `escapeCssValue` | CSS custom-property values (strips quotes, brackets, `;`, `\`, `/* */`) |
+| `escapeJsString` | Values inside JS string literals (escapes `</script>`, U+2028/9, etc.)  |
+| `safeUrl`        | Values used as `href` / `src`                                           |
+
+`safeUrl()` and the related `socialUrl()` filter use a strict scheme **allowlist** (`http`, `https`, `mailto`, `tel`, plus relative URLs). Everything else returns `#`. The filter also strips control / zero-width / bidi-override chars, rejects `https:\/\/` backslash-authority forms, and blocks percent-encoded CR/LF in `mailto:` / `tel:` (header smuggling).
+
 ## Related Packages
 
 - [@eleventy-plugin-themer/core](../../core/README.md) - Build-agnostic cascade system

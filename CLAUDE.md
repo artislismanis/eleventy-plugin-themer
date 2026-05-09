@@ -150,6 +150,7 @@ The `UNSAFE_KEYS` constant is centralized at `packages/core/lib/internal/safe-ke
 Files with guards:
 
 - `packages/core/lib/cascade/config.mjs` — `deepMergeConfig()`
+- `packages/core/lib/schemas.mjs` — `themeConfigSchema()` (skips unsafe keys when building shape)
 - `packages/build/vite/utils/merge-config.mjs` — `deepMergeViteConfig()`
 - `packages/build/vite/theme-config.mjs` — `mergeThemeBuildHints()`
 
@@ -532,6 +533,28 @@ export function configureTemplateEngine(eleventyConfig, options) {
 ```
 
 Generic API name allows for multiple implementations.
+
+---
+
+## Versioning & Stability
+
+All three packages (`core`, `build-vite`, `theme-base`) ship as a linked group via Changesets — they bump together. Current state is **pre-release**: 0.1.0.
+
+**SemVer policy:**
+
+| Version range | What it means |
+| --- | --- |
+| **0.x.y** (current) | Pre-stable. Breaking changes allowed in any **minor** bump. Patch releases are bug fixes only. Intended for early adopters who track changelog. |
+| **1.0.0** | First stable release. Full SemVer applies from here on. |
+| **≥1.x.y** | Standard SemVer: `major` = breaking, `minor` = additive, `patch` = bug fix. |
+
+**Stability surface:**
+
+- **Public API** is the symbols re-exported from each package's main entry (`lib/index.mjs` for core, `index.mjs` for build-vite, `lib/index.mjs` for theme-base) plus subpath exports listed in each package.json `exports` field WITHOUT an `internal/` prefix.
+- **`./internal/*` subpaths** (e.g. `@eleventy-plugin-themer/core/internal/safe-keys`) are **not** part of the public API. Cross-package internal sharing only — may change in any release without a changelog entry.
+- **Theme-base templates and SCSS structure** are part of the spec contract (replacing them is the "override" use case). Renaming or restructuring layouts/partials is a breaking change.
+
+When making changes, decide which bracket the change falls into and add the appropriate changeset (`npx changeset` → choose `minor` for breaking-during-0.x or any additive change, `patch` for bug fixes).
 
 ---
 

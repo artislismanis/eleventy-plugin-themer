@@ -123,6 +123,27 @@ The project has been set up with basic linting, code formatting, testing and dep
 5. Commit your changes and the changeset file
 6. Open a pull request
 
+## Versioning & Stability
+
+All three packages ship as a linked group via Changesets. Current state is **pre-release**: 0.1.0.
+
+| Range               | What it means                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| **0.x.y** (current) | Pre-stable. Breaking changes allowed in any **minor** bump. Patch = bug fixes only. |
+| **1.0.0**           | First stable release. Full SemVer applies from here on.                             |
+| **≥1.x.y**          | Standard SemVer.                                                                    |
+
+**What's in the public API:**
+
+- Symbols re-exported from each package's main entry
+- Subpath exports listed in `package.json#exports` **without** an `internal/` prefix
+
+**What's not:**
+
+- Anything under an `internal/*` subpath (e.g. `@eleventy-plugin-themer/core/internal/safe-keys`). These exist purely so the linked packages can share constants — they may change in any release without a changelog entry.
+
+Theme-base templates and SCSS structure are part of the spec contract: replacing them is the supported "override" use case, but renaming or restructuring layouts/partials is a breaking change.
+
 ## Publishing
 
 Releases are automated via GitHub Actions. The workflow:

@@ -59,6 +59,29 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Non-blocking advisory: surface high/critical CVEs in PRs without
+      # gating merges on transitive-dep churn. Promote to blocking once the
+      # baseline is stable.
+      - name: npm audit (high+)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   build:
     name: Build Check
     runs-on: ubuntu-latest

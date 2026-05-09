@@ -1,6 +1,6 @@
 {
   "name": "@eleventy-plugin-themer/core",
-  "version": "3.0.0",
+  "version": "0.0.0",
   "description": "Build-agnostic core cascade system for Eleventy themes",
   "type": "module",
   "main": "lib/index.mjs",

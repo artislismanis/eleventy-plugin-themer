@@ -158,6 +158,35 @@ describe('filters.mjs', () => {
         'mailto:foo@barBcc:victim@evil',
       );
     });
+
+    it('should reject percent-encoded CRLF in mailto: (decoded header smuggling)', () => {
+      expect(filters.safeUrl('mailto:foo@bar%0d%0aBcc:victim')).toBe('#');
+      expect(filters.safeUrl('mailto:foo@bar%0aBcc:victim')).toBe('#');
+      expect(filters.safeUrl('mailto:foo@bar%0DBcc:victim')).toBe('#');
+      expect(filters.safeUrl('tel:+1%0D%0Asubject:smuggle')).toBe('#');
+    });
+
+    it('should allow legitimate percent-encoding in mailto:', () => {
+      // %20 (space) and %3F (?) are normal mailto encodings, not CR/LF/NUL.
+      expect(filters.safeUrl('mailto:foo@bar?subject=hello%20world')).toBe(
+        'mailto:foo@bar?subject=hello%20world',
+      );
+    });
+
+    it('should reject http(s) URLs that use backslash authority', () => {
+      // WHATWG URL normalises `\` to `/` for special schemes — would route to
+      // evil.com when the consumer expected a path-relative URL.
+      expect(filters.safeUrl('https:\\\\evil.com')).toBe('#');
+      expect(filters.safeUrl('http:\\\\evil.com')).toBe('#');
+      expect(filters.safeUrl('https:\\/\\/evil.com')).toBe('#');
+      expect(filters.safeUrl('https://good.com\\evil.com')).toBe('#');
+    });
+
+    it('should reject http(s) URLs missing the // authority delimiter', () => {
+      expect(filters.safeUrl('https:evil.com')).toBe('#');
+      expect(filters.safeUrl('http:evil.com')).toBe('#');
+      expect(filters.safeUrl('https:/evil.com')).toBe('#');
+    });
   });
 
   describe('currentYear', () => {

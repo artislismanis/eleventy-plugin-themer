@@ -1,6 +1,6 @@
 {
   "name": "eleventy-plugin-themer",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Opinionated, build-agnostic theming system for Eleventy",
   "private": true,
   "type": "module",
