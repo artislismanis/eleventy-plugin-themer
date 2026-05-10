@@ -50,7 +50,7 @@ export default [
 
   // Vitest config files: ignore unresolved vitest/config
   {
-    files: ['**/vitest.config.mjs'],
+    files: ['**/vitest.config.mjs', '**/vitest.config.base.mjs'],
     rules: { 'import/no-unresolved': ['error', { ignore: ['^vitest'] }] },
   },
 

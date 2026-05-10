@@ -168,6 +168,15 @@ Nunjucks runs with `autoescape: false`. All dynamic values in templates **must**
 
 The `socialUrl()` filter validates URL protocols via the `safeUrl` allowlist (only `http`, `https`, `mailto`, `tel`, plus relative URLs are permitted). It also strips whitespace, control, zero-width and bidi-override chars from the rendered value.
 
+### Configuration Merging
+
+Theme defaults always come **first** in array merges; user values **append** (deduped). This rule applies to:
+
+- `mergeThemeBuildHints` in `packages/build/vite/theme-config.mjs` — merges `theme.json#build` (e.g. PurgeCSS safelist) with the consumer's `optimizations` config. Safelist arrays use `mergeStringArrays()` from `packages/build/vite/utils/merge-arrays.mjs` so theme entries can never be silently shadowed by a user typo, and greedy patterns relied on by the theme stay at the head of the array.
+- `createPostcssConfig` in `packages/build/vite/postcss.mjs` — theme-declared PostCSS plugins (from `theme.json#build.postcss.plugins`) come first, user plugins append.
+
+For object merges (non-arrays), user values **win** (last spread). For deep-merge configs (`deepMergeConfig`, `deepMergeViteConfig`), see the dedicated guards section below.
+
 ### Vite Config Deep Merge
 
 `deepMergeViteConfig()` explicitly deep-merges these top-level keys: `resolve`, `css`, `build` (including `rollupOptions.input`), and `server`. Other keys use shallow spread. If adding new deep-merge keys, update both the function and its tests.
@@ -266,6 +275,9 @@ Re-exported from `lib/index.mjs` for consumer use:
 | Symbol | Purpose |
 | --- | --- |
 | `eleventyPluginThemer` (named export) | Eleventy plugin entry — call via `eleventyConfig.addPlugin(eleventyPluginThemer, opts)` |
+| `getThemerDir(eleventyConfig)` | Retrieves the computed `dir` config (use in the config-function return value) |
+| `getThemerContext(eleventyConfig)` | Reads the cached cascade context (peer adapters and helpers) |
+| `themerDataSchema` | Drop-in `eleventyDataSchema` validator — re-export from `content/_data/eleventyDataSchema.js` |
 | `resolveThemeMetadata` | Read & validate `theme.json` for a theme package |
 | `getAvailableFeatures` | Cascade-aware feature discovery |
 | `resolveFeatureEntryPath` | Pick `index.auto.js` over `index.js` for a feature dir |
@@ -274,6 +286,40 @@ Re-exported from `lib/index.mjs` for consumer use:
 | `resolveOverridePaths`, `DEFAULT_ASSET_ENTRIES` | Defaults consumed by build adapters |
 | `themeConfigSchema`, `featuresFrontMatterSchema`, `formatZodIssues` | Zod schemas + formatter for consumer-side validation |
 | `generateDirConfig` *(deprecated)* | Pre-3.0 dir helper — slated for removal in v4 |
+
+Subpath exports: `./logger`, `./types` (JSDoc typedefs only), `./internal/safe-keys`.
+
+### Recommended Consumer Pattern
+
+`eleventyPluginThemer` supports two invocation styles. **Both** stash the shared cascade context on `eleventyConfig`, so the vite adapter (and helpers like `themerDataSchema`) work the same either way:
+
+**Direct call (required when you need `dir` in the config-function return):** Eleventy defers `addPlugin`-registered plugins until *after* the user config function returns, so the computed `dir` is unavailable in time for the return statement. Direct call sidesteps this:
+
+```js
+import { eleventyPluginThemer } from '@eleventy-plugin-themer/core';
+
+export default async function (eleventyConfig) {
+  const { dir } = await eleventyPluginThemer(eleventyConfig, {
+    theme: '@eleventy-plugin-themer/theme-base',
+    projectRoot: __dirname,
+    input: 'content',
+    output: '_site',
+  });
+  // ... other addPlugin calls ...
+  return { dir, templateFormats: ['md', 'njk'] };
+}
+```
+
+**`addPlugin` style** (works when you don't need `dir`, e.g. you set the directory elsewhere or rely on Eleventy defaults). Use `getThemerDir(eleventyConfig)` only from code paths that run *after* the plugin queue has executed (post-init helpers, transforms, etc.):
+
+```js
+eleventyConfig.addPlugin(eleventyPluginThemer, {
+  theme: '@eleventy-plugin-themer/theme-base',
+  projectRoot: __dirname,
+});
+```
+
+The core plugin stashes a shared cascade context (theme metadata, resolved override paths, discovered features, computed `dir`) on `eleventyConfig`. The vite adapter **requires** this context — register `eleventyPluginThemer` before `eleventyPluginThemerVite` or the vite plugin throws at init. Order matters because the adapter relies on already-resolved metadata; a silent fallback would mask misconfiguration.
 
 Subpath exports: `./logger`, `./internal/safe-keys` (peer-package internal — not for end users).
 
@@ -317,7 +363,9 @@ Build adapters are **thin wrappers** that:
 
 ### Vite Implementation Details
 
-**Feature Discovery:** Features are discovered once via `getAvailableFeatures()` in `eleventyPluginThemerVite()` and threaded through `discoveredFeatures` to all downstream consumers.
+**Feature Discovery:** Features are discovered once by `eleventyPluginThemer` (in core) and stashed on `eleventyConfig` via the themer context. `eleventyPluginThemerVite` reads them from the context and threads `discoveredFeatures` through to all downstream consumers; it does not re-discover. If the core plugin wasn't registered first, the vite plugin throws.
+
+**Optimization key validation:** `eleventyPluginThemerVite` validates `optimizations` keys against `KNOWN_OPTIMIZATIONS` (from `utils/plugin-orchestrator.mjs`) at plugin entry. Unknown keys throw with the valid set listed — typos like `purgeCS` no longer silently no-op.
 
 - `getFeaturePathsForBuild(discoveredFeatures)` is a strict internal helper — it `throw`s if `discoveredFeatures` is not a `Map`.
 - `getFeatureEntries(projectRoot, themeMetadata, opts?)` is the public adapter API. `opts` carries optional `discoveredFeatures` and `resolvedOverridePaths`; if `discoveredFeatures` is omitted, it falls back to `getAvailableFeatures()` for ergonomic external use.
@@ -568,6 +616,24 @@ When making changes, decide which bracket the change falls into and add the appr
 | Does it duplicate existing logic?                      | **Refactor** (DRY violation)    |
 | Does it make one package know too much about another?  | **Refactor** (SoC violation)    |
 | Does the API name reference specific technology?       | **Rename** to be generic        |
+
+---
+
+## Design Decisions (Intentional, Do Not "Fix")
+
+The following look like duplication or friction at first glance but are deliberate. Reverting any of them re-creates a real problem — file an issue first if you think a change is warranted.
+
+1. **Two `deepMerge` implementations** — `core/lib/cascade/config.mjs:deepMergeConfig` and `build-vite/utils/merge-config.mjs:deepMergeViteConfig` have different semantics by design. Config merge is generic deep merge with null-clearing; the Vite variant is shallow with explicit deep keys (`resolve`, `css`, `build.rollupOptions.input`, `server`) chosen to match Vite's config shape. Unifying them would force one or the other to grow special cases. Keep separate.
+
+2. **`loadModuleFromPath` thin (3 callers)** — Extracted from `loadOverrideHelpers` and `validateUserThemeConfig` despite being short. Inlining trades two-line readability for divergence risk on the dynamic-import + extension-iteration pattern. Keep extracted.
+
+3. **Theme-base owns escape functions, not core** — `safeUrl`, `escapeHtml`, etc. live in `packages/themes/base/lib/escape.mjs` because themes own rendering and therefore own the escaping strategy. Moving them to core would couple core to a rendering choice (Nunjucks autoescape: false). Themes that adopt a different rendering model can ship their own.
+
+4. **Direct-call vs `addPlugin` for `dir`** — Eleventy defers `addPlugin` execution until *after* the config function returns, so consumers needing `dir` in their return value must call `eleventyPluginThemer` directly. This is an Eleventy lifecycle constraint, not a plugin design flaw. Both invocation styles populate the shared context identically.
+
+5. **PostCSS config can't read the themer context** — `postcss.config.mjs` is loaded synchronously at module import time, before Eleventy's async config function runs. `createPostcssConfig` therefore re-reads `theme.json` via `resolveThemeMetadata`. The cost is one static-file read per build; not worth a side-channel.
+
+6. **`generateDirConfig` (deprecated) retained** — Pre-3.0 helper, kept for one more release cycle to ease migration. Slated for removal in v4.
 
 ---
 

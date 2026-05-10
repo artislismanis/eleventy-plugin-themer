@@ -3,7 +3,14 @@ import path from 'path';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { eleventyPluginThemer, generateDirConfig } from '../lib/index.mjs';
+import {
+  eleventyPluginThemer,
+  generateDirConfig,
+  getThemerContext,
+  getThemerDir,
+  themerDataSchema,
+  _resetThemerDataSchemaCache,
+} from '../lib/index.mjs';
 
 // Mock fs module
 vi.mock('fs');
@@ -26,6 +33,7 @@ describe('eleventyPluginThemer', () => {
       addPairedShortcode: vi.fn(),
       addTransform: vi.fn(),
       addLayoutAlias: vi.fn(),
+      addWatchTarget: vi.fn(),
     };
 
     // Mock theme package.json
@@ -154,5 +162,62 @@ describe('generateDirConfig', () => {
     const expectedRelative = path.relative(path.join('/project', 'content'), expectedThemeLayouts);
 
     expect(result.dir.includes).toBe(expectedRelative);
+  });
+});
+
+describe('getThemerContext / getThemerDir', () => {
+  it('returns undefined when plugin has not run', () => {
+    expect(getThemerContext({})).toBeUndefined();
+  });
+
+  it('throws from getThemerDir when context missing', () => {
+    expect(() => getThemerDir({})).toThrow(/themer context not found/);
+  });
+
+  it('returns dir from cached context', () => {
+    const fakeDir = { input: 'content', output: '_site', includes: '../foo' };
+    const cfg = {};
+    Object.defineProperty(cfg, '__themerContext', {
+      value: { dir: fakeDir, themeMetadata: {}, resolvedOverridePaths: {}, projectRoot: '/p' },
+    });
+    expect(getThemerDir(cfg)).toBe(fakeDir);
+  });
+});
+
+describe('themerDataSchema', () => {
+  beforeEach(() => {
+    _resetThemerDataSchemaCache();
+  });
+
+  it('throws when neither context nor themeMetadata is on data', async () => {
+    await expect(themerDataSchema({})).rejects.toThrow(/cannot locate themer context/);
+  });
+
+  it('uses cached themer context from data.eleventy.eleventyConfig', async () => {
+    const cfg = {};
+    Object.defineProperty(cfg, '__themerContext', {
+      value: {
+        themeMetadata: { name: 't' },
+        resolvedOverridePaths: {},
+        projectRoot: '/p',
+      },
+    });
+
+    await expect(
+      themerDataSchema({
+        eleventy: { eleventyConfig: cfg },
+        draft: false,
+        tags: ['x'],
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('falls back to data.themeMetadata when no context present', async () => {
+    await expect(
+      themerDataSchema({
+        themeMetadata: { name: 't', themeFeatures: [] },
+        tags: ['a'],
+      }),
+    ).resolves.toBeUndefined();
   });
 });

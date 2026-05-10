@@ -16,11 +16,28 @@ import { prismThemePlugin } from './plugins/prism-theme.mjs';
 import { runOptimizations } from './utils/plugin-orchestrator.mjs';
 import { getFeaturePathsForBuild } from './utils/features.mjs';
 import { deepMergeViteConfig } from './utils/merge-config.mjs';
+import { mergeStringArrays } from './utils/merge-arrays.mjs';
 
 /**
  * Merge theme build hints into user optimization config.
- * Themes declare build hints (e.g. purgeCSS safelist) in theme.json under "build".
- * These are merged with the user's optimization config so the plugin receives both.
+ *
+ * Themes declare build hints (e.g. PurgeCSS safelist) in `theme.json#build`.
+ * These are merged with the user's `optimizations` config so the underlying
+ * optimization plugin receives the union.
+ *
+ * Merge precedence:
+ *   - Theme defaults come **first** (preserved at the head of array merges).
+ *   - User values **append** (deduped) for safelist arrays so user input
+ *     never silently shadows theme requirements, but also can't break
+ *     greedy patterns relied on by the theme.
+ *   - Object merges put user values **last** (user wins for primitive fields).
+ *
+ * Unsafe keys (`__proto__`, `constructor`, `prototype`) on `themeBuild` are
+ * silently skipped to prevent prototype pollution via parsed JSON.
+ *
+ * @param {Object} optimizations - User-supplied optimization config.
+ * @param {Object} themeBuild - Theme-supplied `build` block from `theme.json`.
+ * @returns {Object} Merged optimizations object (new reference).
  */
 function mergeThemeBuildHints(optimizations, themeBuild) {
   if (!optimizations || !themeBuild) return optimizations;
@@ -40,9 +57,9 @@ function mergeThemeBuildHints(optimizations, themeBuild) {
         merged[pluginName] = {
           ...merged[pluginName],
           safelist: {
-            standard: [...(themeSafelist.standard || []), ...(userSafelist.standard || [])],
-            deep: [...(themeSafelist.deep || []), ...(userSafelist.deep || [])],
-            greedy: [...(themeSafelist.greedy || []), ...(userSafelist.greedy || [])],
+            standard: mergeStringArrays(themeSafelist.standard, userSafelist.standard),
+            deep: mergeStringArrays(themeSafelist.deep, userSafelist.deep),
+            greedy: mergeStringArrays(themeSafelist.greedy, userSafelist.greedy),
           },
         };
       } else {

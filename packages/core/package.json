@@ -7,6 +7,7 @@
   "exports": {
     ".": "./lib/index.mjs",
     "./logger": "./lib/logger.mjs",
+    "./types": "./lib/types.mjs",
     "./internal/safe-keys": "./lib/internal/safe-keys.mjs"
   },
   "scripts": {
