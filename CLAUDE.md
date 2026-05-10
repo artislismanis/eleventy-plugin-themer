@@ -274,18 +274,27 @@ Re-exported from `lib/index.mjs` for consumer use:
 
 | Symbol | Purpose |
 | --- | --- |
-| `eleventyPluginThemer` (named export) | Eleventy plugin entry — call via `eleventyConfig.addPlugin(eleventyPluginThemer, opts)` |
-| `getThemerDir(eleventyConfig)` | Retrieves the computed `dir` config (use in the config-function return value) |
-| `getThemerContext(eleventyConfig)` | Reads the cached cascade context (peer adapters and helpers) |
-| `themerDataSchema` | Drop-in `eleventyDataSchema` validator — re-export from `content/_data/eleventyDataSchema.js` |
-| `resolveThemeMetadata` | Read & validate `theme.json` for a theme package |
-| `getAvailableFeatures` | Cascade-aware feature discovery |
-| `resolveResource` | Resolve a single resource via the cascade |
-| `getThemeRoot` | Path helper used by build adapters |
-| `resolveOverridePaths`, `DEFAULT_ASSET_ENTRIES` | Defaults consumed by build adapters |
+| `eleventyPluginThemer` (named export) | Eleventy plugin entry — call via `eleventyConfig.addPlugin(eleventyPluginThemer, opts)` or directly when `dir` is needed in the config-function return |
+| `createThemerProject({ theme, projectRoot })` | Project handle that pre-binds `theme`/`projectRoot` to the Eleventy plugin, Vite adapter options, and PostCSS options — replaces 4-place repetition |
+| `defineThemeConfig(config)` | Identity helper that types `content/_data/theme.js` as `ThemeUserConfig` via JSDoc |
+| `themerDataSchema` | Drop-in `eleventyDataSchema` validator — re-export from `content/_data/eleventyDataSchema.js` (manual step; can't be auto-wired because Eleventy resolves `_data` files before the async config function finishes) |
+| `resolveThemeMetadata` | Read & validate `theme.json` for a theme package (memoized per process) |
 | `themeConfigSchema`, `featuresFrontMatterSchema`, `formatZodIssues` | Zod schemas + formatter for consumer-side validation |
 
-Subpath exports: `./logger`, `./types` (JSDoc typedefs only), `./internal/safe-keys`.
+Subpath exports: `./logger`, `./types` (JSDoc typedefs only), `./internal/api`, `./internal/safe-keys`, `./internal/defaults`. The `internal/*` subpaths are **not** part of the public API — see "Internal cross-package API" below.
+
+#### Internal cross-package API (`@eleventy-plugin-themer/core/internal/api`)
+
+Plumbing consumed by `@eleventy-plugin-themer/build-vite` and the framework's own tests. Subject to change without a changelog entry; do not import from end-user code.
+
+| Symbol | Purpose |
+| --- | --- |
+| `getThemerContext(eleventyConfig)` | Read the shared cascade context stashed by `eleventyPluginThemer` |
+| `getThemerDir(eleventyConfig)` | Retrieve the computed `dir` config (use only after the plugin queue has executed) |
+| `setThemerContext(eleventyConfig, ctx)` | Write the context (used by `eleventyPluginThemer` itself) |
+| `getThemeRoot(projectRoot, themeName)` | Resolve the on-disk root of an installed theme package |
+| `resolveResource({ ... })` | Resolve a single resource via the cascade |
+| `getAvailableFeatures(projectRoot, themeMetadata, overridePaths?)` | Cascade-aware feature discovery |
 
 ### Recommended Consumer Pattern
 
@@ -318,8 +327,6 @@ eleventyConfig.addPlugin(eleventyPluginThemer, {
 ```
 
 The core plugin stashes a shared cascade context (theme metadata, resolved override paths, discovered features, computed `dir`) on `eleventyConfig`. The vite adapter **requires** this context — register `eleventyPluginThemer` before `eleventyPluginThemerVite` or the vite plugin throws at init. Order matters because the adapter relies on already-resolved metadata; a silent fallback would mask misconfiguration.
-
-Subpath exports: `./logger`, `./internal/safe-keys` (peer-package internal — not for end users).
 
 ### Core Implementation Details
 
@@ -363,10 +370,10 @@ Build adapters are **thin wrappers** that:
 
 **Feature Discovery:** Features are discovered once by `eleventyPluginThemer` (in core) and stashed on `eleventyConfig` via the themer context. `eleventyPluginThemerVite` reads them from the context and threads `discoveredFeatures` through to all downstream consumers; it does not re-discover. If the core plugin wasn't registered first, the vite plugin throws.
 
-**Optimization key validation:** `eleventyPluginThemerVite` validates `optimizations` keys against `KNOWN_OPTIMIZATIONS` (from `utils/plugin-orchestrator.mjs`) at plugin entry. Unknown keys throw with the valid set listed — typos like `purgeCS` no longer silently no-op.
+**Optimization key validation:** `eleventyPluginThemerVite` validates `optimizations` keys against `KNOWN_OPTIMIZATIONS` (from `utils/plugin-orchestrator.mjs`) at plugin entry. Unknown keys throw with the valid set listed — typos like `purgeCS` no longer silently no-op. `KNOWN_OPTIMIZATIONS` is internal-only; consumers see the valid set in the thrown error message rather than via a public export.
 
 - `getFeaturePathsForBuild(discoveredFeatures)` is a strict internal helper — it `throw`s if `discoveredFeatures` is not a `Map`.
-- `getFeatureEntries(projectRoot, themeMetadata, opts?)` is the public adapter API. `opts` carries optional `discoveredFeatures` and `resolvedOverridePaths`; if `discoveredFeatures` is omitted, it falls back to `getAvailableFeatures()` for ergonomic external use.
+- `getFeatureEntries(projectRoot, themeMetadata, opts?)` is internal to build-vite. `opts` carries optional `discoveredFeatures` and `resolvedOverridePaths`; if `discoveredFeatures` is omitted, it falls back to `getAvailableFeatures()`.
 
 **Decomposition:** `eleventyPluginThemerVite()` orchestrates `validatePluginOptions`, `loadEleventyVitePlugin`, `resolveBuildContext`, and `buildViteOptions`. `createThemeViteConfig()` orchestrates `buildResolveAliases`, `buildScssConfig`, `buildPluginsArray`, `buildOptimizationPlugin`. Keep these helpers private to their files.
 
@@ -630,6 +637,8 @@ The following look like duplication or friction at first glance but are delibera
 4. **Direct-call vs `addPlugin` for `dir`** — Eleventy defers `addPlugin` execution until *after* the config function returns, so consumers needing `dir` in their return value must call `eleventyPluginThemer` directly. This is an Eleventy lifecycle constraint, not a plugin design flaw. Both invocation styles populate the shared context identically.
 
 5. **PostCSS config can't read the themer context** — `postcss.config.mjs` is loaded synchronously at module import time, before Eleventy's async config function runs. `createPostcssConfig` therefore re-reads `theme.json` via `resolveThemeMetadata`. The cost is one static-file read per build; not worth a side-channel.
+
+6. **Dev-time config is not shared with consumers** — ESLint, Stylelint, Prettier, and Vitest configs in this repo are for **this repo's** development only. Consumer projects (e.g. `eleventy-starter`) own their dev tooling independently. Do not add a `@eleventy-plugin-themer/configs` package or similar shared-tooling export, and do not flag duplicated dev configs across repos as a DRY violation. Apparent overlap with consumer repos is fine — runtime APIs are the only intentional coupling.
 
 ---
 

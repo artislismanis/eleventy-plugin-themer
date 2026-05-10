@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getThemerContext } from '@eleventy-plugin-themer/core';
+import { getThemerContext } from '@eleventy-plugin-themer/core/internal/api';
 
 import { eleventyPluginThemerVite } from '../index.mjs';
 
 // Mocks for the core dependencies used by index.mjs (declared after the
 // imports because vi.mock is hoisted by Vitest's transformer to the top of
 // the file, making `import` ordering inert from a lint perspective).
-vi.mock('@eleventy-plugin-themer/core', () => ({
+vi.mock('@eleventy-plugin-themer/core/internal/api', () => ({
   getThemerContext: vi.fn(),
-  DEFAULT_ASSET_ENTRIES: { styles: 'styles/main.scss', scripts: 'scripts/main.js' },
   getThemeRoot: vi.fn((root, name) => `${root}/node_modules/${name}`),
+}));
+
+vi.mock('@eleventy-plugin-themer/core/internal/defaults', () => ({
+  DEFAULT_ASSET_ENTRIES: { styles: 'styles/main.scss', scripts: 'scripts/main.js' },
 }));
 
 vi.mock('../theme-config.mjs', () => ({

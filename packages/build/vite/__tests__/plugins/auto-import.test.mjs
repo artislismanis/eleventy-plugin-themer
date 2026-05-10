@@ -6,14 +6,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { themeAutoImportPlugin } from '../../plugins/auto-import.mjs';
 
 vi.mock('fs');
-vi.mock('@eleventy-plugin-themer/core', () => ({
+vi.mock('@eleventy-plugin-themer/core/internal/api', () => ({
   resolveResource: vi.fn(),
   getThemeRoot: vi.fn((projectRoot, themeName) =>
     path.join(projectRoot, 'node_modules', themeName),
   ),
 }));
 
-const { resolveResource } = await import('@eleventy-plugin-themer/core');
+const { resolveResource } = await import('@eleventy-plugin-themer/core/internal/api');
 
 describe('themeAutoImportPlugin', () => {
   const baseOptions = {

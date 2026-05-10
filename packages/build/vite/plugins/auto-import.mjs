@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { resolveResource, getThemeRoot } from '@eleventy-plugin-themer/core';
+import { resolveResource, getThemeRoot } from '@eleventy-plugin-themer/core/internal/api';
 
 /**
  * @param {Object} options - Plugin options

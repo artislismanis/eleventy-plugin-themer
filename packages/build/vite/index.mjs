@@ -7,42 +7,13 @@
 
 import path from 'path';
 
-import { getThemerContext } from '@eleventy-plugin-themer/core';
+import { getThemerContext } from '@eleventy-plugin-themer/core/internal/api';
 
 import { createThemeViteConfig } from './theme-config.mjs';
 import { getFeatureEntries as _getFeatureEntries } from './utils/features.mjs';
 import { ASSET_PATHS } from './utils/constants.mjs';
 import { runIntegrationCheck } from './utils/integration-check.mjs';
 import { KNOWN_OPTIMIZATIONS } from './utils/plugin-orchestrator.mjs';
-
-/**
- * @public
- *
- * Theme-aware Vite configuration with auto-import and optimizations.
- * Exported for users composing their own integration; the standard entry
- * point is `eleventyPluginThemerVite` below.
- */
-export { createThemeViteConfig } from './theme-config.mjs';
-
-/**
- * @public
- *
- * Individual Vite plugins exported so consumers building a custom adapter
- * (e.g. for a different theme or build flow) can cherry-pick optimisations
- * without taking the whole `eleventyPluginThemerVite` orchestration.
- */
-export {
-  themeAutoImportPlugin,
-  featureServePlugin,
-  purgeCSSFiles,
-  generateCriticalCSS,
-  minifyHTML,
-  validateLinks,
-  preserveNonHtmlFiles,
-} from './plugins/index.mjs';
-
-/** @public */
-export { getFeatureEntries } from './utils/features.mjs';
 
 /**
  * @public

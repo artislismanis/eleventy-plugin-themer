@@ -4,11 +4,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
   eleventyPluginThemer,
-  getThemerContext,
-  getThemerDir,
   themerDataSchema,
   _resetThemerDataSchemaCache,
 } from '../lib/index.mjs';
+import { getThemerContext, getThemerDir } from '../lib/internal/context.mjs';
 
 // Mock fs module
 vi.mock('fs');

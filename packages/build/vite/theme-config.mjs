@@ -6,7 +6,8 @@
 
 import path from 'path';
 
-import { DEFAULT_ASSET_ENTRIES, getThemeRoot } from '@eleventy-plugin-themer/core';
+import { getThemeRoot } from '@eleventy-plugin-themer/core/internal/api';
+import { DEFAULT_ASSET_ENTRIES } from '@eleventy-plugin-themer/core/internal/defaults';
 import { logger } from '@eleventy-plugin-themer/core/logger';
 import { UNSAFE_KEYS } from '@eleventy-plugin-themer/core/internal/safe-keys';
 

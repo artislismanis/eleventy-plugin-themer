@@ -8,7 +8,9 @@
     ".": "./lib/index.mjs",
     "./logger": "./lib/logger.mjs",
     "./types": "./lib/types.mjs",
-    "./internal/safe-keys": "./lib/internal/safe-keys.mjs"
+    "./internal/api": "./lib/internal/api.mjs",
+    "./internal/safe-keys": "./lib/internal/safe-keys.mjs",
+    "./internal/defaults": "./lib/defaults.mjs"
   },
   "scripts": {
     "test": "vitest run",

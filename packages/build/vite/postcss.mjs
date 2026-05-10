@@ -37,8 +37,10 @@ import { pathToFileURL } from 'url';
  * before Eleventy's async config function runs — so a consumer's
  * `postcss.config.mjs` cannot read the themer context off `eleventyConfig`
  * (it doesn't exist yet). It therefore re-reads `theme.json` via
- * `resolveThemeMetadata`. Cost: one static-file read per build. The
- * alternative (a side-channel from the plugin) is not worth the complexity.
+ * `resolveThemeMetadata`. The cost is one static-file read per process; if
+ * the same Node process also instantiates `createThemerProject` from
+ * `eleventy.config.mjs`, `resolveThemeMetadata`'s module-level cache
+ * collapses both calls to a single disk read.
  *
  * @param {Object} args
  * @param {Object} args.themeMetadata - Output of `resolveThemeMetadata`.

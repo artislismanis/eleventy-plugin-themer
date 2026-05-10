@@ -3,7 +3,7 @@ import path from 'path';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { resolveThemeMetadata } from '../../lib/cascade/metadata.mjs';
+import { resolveThemeMetadata, _resetThemerMetadataCache } from '../../lib/cascade/metadata.mjs';
 
 // Mock fs module
 vi.mock('fs');
@@ -11,6 +11,8 @@ vi.mock('fs');
 describe('resolveThemeMetadata', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // Cache is process-wide; reset so each test sees fresh fs mocks.
+    _resetThemerMetadataCache();
   });
 
   afterEach(() => {
