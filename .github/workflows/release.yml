@@ -6,6 +6,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+# Opt action JS runtimes into Node 24 ahead of the June 2026 default flip.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   release:
     name: Release

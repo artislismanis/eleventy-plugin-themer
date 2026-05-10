@@ -7,16 +7,13 @@
 
 import path from 'path';
 
-import {
-  resolveThemeMetadata,
-  resolveOverridePaths,
-  getAvailableFeatures,
-} from '@eleventy-plugin-themer/core';
+import { getThemerContext } from '@eleventy-plugin-themer/core';
 
 import { createThemeViteConfig } from './theme-config.mjs';
 import { getFeatureEntries as _getFeatureEntries } from './utils/features.mjs';
 import { ASSET_PATHS } from './utils/constants.mjs';
 import { runIntegrationCheck } from './utils/integration-check.mjs';
+import { KNOWN_OPTIMIZATIONS } from './utils/plugin-orchestrator.mjs';
 
 /**
  * @public
@@ -46,6 +43,14 @@ export {
 
 /** @public */
 export { getFeatureEntries } from './utils/features.mjs';
+
+/**
+ * @public
+ *
+ * PostCSS preset helper. Consumers call `createPostcssConfig` from their own
+ * `postcss.config.mjs` to defer to plugins declared in `theme.json#build.postcss`.
+ */
+export { createPostcssConfig } from './postcss.mjs';
 
 /**
  * Default rollup output options for theme builds.
@@ -136,7 +141,7 @@ function createDefaultRollupOutput(_options = {}) {
  *   return { dir: { input: 'content', output: '_site' } };
  * }
  */
-function validatePluginOptions({ theme, projectRoot }) {
+function validatePluginOptions({ theme, projectRoot, optimizations }) {
   if (!theme) {
     throw new Error(
       'eleventyPluginThemerVite requires a `theme` option specifying the theme package name.',
@@ -144,6 +149,15 @@ function validatePluginOptions({ theme, projectRoot }) {
   }
   if (!projectRoot) {
     throw new Error('eleventyPluginThemerVite requires a `projectRoot` option.');
+  }
+  if (optimizations && typeof optimizations === 'object') {
+    const unknown = Object.keys(optimizations).filter((k) => !KNOWN_OPTIMIZATIONS.has(k));
+    if (unknown.length > 0) {
+      throw new Error(
+        `eleventyPluginThemerVite: unknown optimization key(s): ${unknown.join(', ')}. ` +
+          `Valid keys: ${[...KNOWN_OPTIMIZATIONS].join(', ')}.`,
+      );
+    }
   }
 }
 
@@ -160,15 +174,30 @@ async function loadEleventyVitePlugin() {
   }
 }
 
-function resolveBuildContext({ projectRoot, theme, overridePaths }) {
-  const themeMetadata = resolveThemeMetadata(projectRoot, theme);
-  const resolvedOverridePaths = resolveOverridePaths(themeMetadata, overridePaths);
-  const discoveredFeatures = getAvailableFeatures(
-    projectRoot,
-    themeMetadata,
-    resolvedOverridePaths,
-  );
-  return { themeMetadata, resolvedOverridePaths, discoveredFeatures };
+/**
+ * Resolve theme metadata, override paths, and feature discovery for the
+ * Vite adapter from the cached themer context populated by
+ * `eleventyPluginThemer` (see core/lib/index.mjs).
+ *
+ * Throws if the core plugin wasn't registered first — registration order is
+ * required for correctness (the adapter relies on the core plugin's resolved
+ * metadata, override paths, and feature discovery), so a silent fallback
+ * masks a real misconfiguration.
+ */
+function resolveBuildContext({ eleventyConfig }) {
+  const cached = getThemerContext(eleventyConfig);
+  if (!cached) {
+    throw new Error(
+      'eleventyPluginThemerVite: no themer context found on eleventyConfig. ' +
+        'Register `eleventyPluginThemer` (from @eleventy-plugin-themer/core) before ' +
+        'this plugin so it can share resolved metadata, override paths, and discovered features.',
+    );
+  }
+  return {
+    themeMetadata: cached.themeMetadata,
+    resolvedOverridePaths: cached.resolvedOverridePaths,
+    discoveredFeatures: cached.discoveredFeatures,
+  };
 }
 
 function buildViteOptions(ctx, opts) {
@@ -232,7 +261,7 @@ export async function eleventyPluginThemerVite(eleventyConfig, options = {}) {
   runIntegrationCheck({ silent: opts.skipIntegrationCheck });
   const EleventyVitePlugin = await loadEleventyVitePlugin();
 
-  const ctx = resolveBuildContext(opts);
+  const ctx = resolveBuildContext({ eleventyConfig });
   const featureEntries = _getFeatureEntries(opts.projectRoot, ctx.themeMetadata, {
     resolvedOverridePaths: ctx.resolvedOverridePaths,
     discoveredFeatures: ctx.discoveredFeatures,

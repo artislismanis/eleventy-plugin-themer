@@ -1,5 +1,3 @@
-import { defineProject } from 'vitest/config';
+import { createProjectConfig } from '../../../vitest.config.base.mjs';
 
-export default defineProject({
-  test: { name: 'theme-base' },
-});
+export default createProjectConfig('theme-base');

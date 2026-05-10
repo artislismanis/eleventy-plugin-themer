@@ -22,6 +22,36 @@
         ],
         "greedy": ["language-"]
       }
+    },
+    "postcss": {
+      "plugins": [
+        {
+          "package": "postcss-preset-env",
+          "options": {
+            "stage": 3,
+            "features": {
+              "nesting-rules": true,
+              "custom-properties": true,
+              "custom-media-queries": true
+            }
+          }
+        },
+        {
+          "package": "cssnano",
+          "production": true,
+          "options": {
+            "preset": [
+              "default",
+              {
+                "discardComments": { "removeAll": true },
+                "normalizeWhitespace": true,
+                "colormin": true,
+                "minifyFontValues": true
+              }
+            ]
+          }
+        }
+      ]
     }
   },
 

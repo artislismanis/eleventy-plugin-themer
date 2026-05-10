@@ -26,6 +26,12 @@ const PLUGIN_REGISTRY = {
 };
 
 /**
+ * Set of valid optimization keys, exposed so consumers (and `eleventyPluginThemerVite`)
+ * can fail-fast on typos in user-supplied `optimizations` rather than silently no-op.
+ */
+export const KNOWN_OPTIMIZATIONS = new Set(Object.keys(PLUGIN_REGISTRY));
+
+/**
  * Run optimization plugins based on configuration
  *
  * All plugins follow a uniform signature: (outputDir, options) => Promise<void>

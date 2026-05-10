@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Opt action JS runtimes into Node 24 ahead of the June 2026 default flip.
+# Project Node version (under setup-node) stays at 22 (current LTS).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   lint:
     name: Lint
