@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getAvailableFeatures, resolveResource } from '@eleventy-plugin-themer/core';
+import { getAvailableFeatures, resolveResource } from '@eleventy-plugin-themer/core/internal/api';
 
 import { getFeaturePathsForBuild, getFeatureEntries } from '../../utils/features.mjs';
 
-// Mock the @eleventy-plugin-themer/core module
-vi.mock('@eleventy-plugin-themer/core', () => ({
+vi.mock('@eleventy-plugin-themer/core/internal/api', () => ({
   getAvailableFeatures: vi.fn(),
   resolveFeatureEntryPath: vi.fn(),
   resolveResource: vi.fn(),
+}));
+
+vi.mock('@eleventy-plugin-themer/core/internal/defaults', () => ({
   DEFAULT_ASSET_ENTRIES: {
     styles: 'styles/main.scss',
     scripts: 'scripts/main.js',

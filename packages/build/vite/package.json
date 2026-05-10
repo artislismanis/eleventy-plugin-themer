@@ -6,9 +6,7 @@
   "main": "index.mjs",
   "exports": {
     ".": "./index.mjs",
-    "./postcss": "./postcss.mjs",
-    "./plugins": "./plugins/index.mjs",
-    "./plugins/*": "./plugins/*.mjs"
+    "./postcss": "./postcss.mjs"
   },
   "scripts": {
     "test": "vitest run",

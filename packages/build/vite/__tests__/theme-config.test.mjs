@@ -4,11 +4,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { createThemeViteConfig } from '../theme-config.mjs';
 
-vi.mock('@eleventy-plugin-themer/core', () => ({
-  DEFAULT_ASSET_ENTRIES: { styles: 'styles/main.scss', scripts: 'scripts/main.js' },
+vi.mock('@eleventy-plugin-themer/core/internal/api', () => ({
   getThemeRoot: vi.fn((projectRoot, themeName) =>
     path.join(projectRoot, 'node_modules', themeName),
   ),
+}));
+
+vi.mock('@eleventy-plugin-themer/core/internal/defaults', () => ({
+  DEFAULT_ASSET_ENTRIES: { styles: 'styles/main.scss', scripts: 'scripts/main.js' },
 }));
 
 vi.mock('@eleventy-plugin-themer/core/logger', () => ({

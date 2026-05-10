@@ -25,25 +25,45 @@ Requires Node.js 22+.
 
 ```js
 // eleventy.config.mjs
-import { eleventyPluginThemer } from '@eleventy-plugin-themer/core';
+import { createThemerProject } from '@eleventy-plugin-themer/core';
+import { eleventyPluginThemerVite } from '@eleventy-plugin-themer/build-vite';
 
 const THEME_NAME = '@eleventy-plugin-themer/theme-base';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Bind `{ theme, projectRoot }` once and reuse across the Eleventy plugin,
+// the Vite adapter, and `postcss.config.mjs`.
+const themer = createThemerProject({ theme: THEME_NAME, projectRoot: __dirname });
 
 export default async function (eleventyConfig) {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
   // Direct call: returns the computed `dir` so it can be spread into the config-function
   // return value (Eleventy defers `addPlugin` until after the function returns).
-  const { dir } = await eleventyPluginThemer(eleventyConfig, {
-    theme: THEME_NAME,
-    projectRoot: __dirname,
+  const { dir } = await themer.eleventyPlugin(eleventyConfig, {
     input: 'content',
     output: '_site',
   });
 
+  eleventyConfig.addPlugin(
+    eleventyPluginThemerVite,
+    themer.viteOptions({ optimizations: { purgeCSS: true } }),
+  );
+
   return { dir };
 }
 ```
+
+You can also call `eleventyPluginThemer(eleventyConfig, { theme, projectRoot, ... })` directly without the project handle — the handle is purely an ergonomic wrapper that removes repetition.
+
+### Why `eleventyDataSchema.js` is a manual step
+
+The plugin can't auto-register `eleventyDataSchema` because Eleventy resolves `_data` files **before** the async config function (and therefore the plugin) finishes. Add a one-line file in your content data directory:
+
+```js
+// content/_data/eleventyDataSchema.js
+export { themerDataSchema as default } from '@eleventy-plugin-themer/core';
+```
+
+`themerDataSchema` reads the cached themer context lazily on first call, so it sees the right theme and feature set regardless of which invocation style you used.
 
 ### Override Paths
 
@@ -72,6 +92,26 @@ await eleventyConfig.addPlugin(eleventyPluginThemer, {
 ```
 
 ## Public API
+
+### `createThemerProject({ theme, projectRoot })`
+
+Bind the two values you'd otherwise pass to four different call sites (`eleventyPluginThemer`, `eleventyPluginThemerVite`, `resolveThemeMetadata`, `createPostcssConfig`). Returns a project handle:
+
+| Field / Method                          | Purpose                                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------- |
+| `theme`, `projectRoot`, `themeMetadata` | Eagerly-resolved values for ad-hoc use                                                 |
+| `eleventyPlugin(eleventyConfig, extra)` | Pre-bound `eleventyPluginThemer` — pass `{ input, output, overridePaths }` if needed   |
+| `viteOptions(extra)`                    | Options object for `addPlugin(eleventyPluginThemerVite, ...)` — append `optimizations` |
+| `postcssOptions(extra)`                 | Options object for `createPostcssConfig({ ... })` — append `userPlugins`               |
+
+### `defineThemeConfig(config)`
+
+Identity helper for `content/_data/theme.{js,mjs}` that types the argument as `ThemeUserConfig` via JSDoc. No runtime cost; pure editor ergonomics.
+
+```js
+import { defineThemeConfig } from '@eleventy-plugin-themer/core';
+export default defineThemeConfig({ themeToggle: { defaultTheme: 'auto' } });
+```
 
 ### `eleventyPluginThemer(eleventyConfig, options)`
 
@@ -117,11 +157,12 @@ import {
 
 ### Subpath exports
 
-| Subpath                                           | Stability    | Purpose                                                          |
-| ------------------------------------------------- | ------------ | ---------------------------------------------------------------- |
-| `@eleventy-plugin-themer/core`                    | public       | Main API                                                         |
-| `@eleventy-plugin-themer/core/logger`             | public       | Shared logger (used by build adapters)                           |
-| `@eleventy-plugin-themer/core/internal/safe-keys` | **internal** | Cross-package `UNSAFE_KEYS` constant — may change without notice |
+| Subpath                                           | Stability    | Purpose                                                               |
+| ------------------------------------------------- | ------------ | --------------------------------------------------------------------- |
+| `@eleventy-plugin-themer/core`                    | public       | Main API                                                              |
+| `@eleventy-plugin-themer/core/logger`             | public       | Shared logger (used by build adapters)                                |
+| `@eleventy-plugin-themer/core/internal/safe-keys` | **internal** | Cross-package `UNSAFE_KEYS` constant — may change without notice      |
+| `@eleventy-plugin-themer/core/internal/defaults`  | **internal** | Framework defaults (`DEFAULT_ASSET_ENTRIES`, etc.) for build adapters |
 
 `internal/*` subpaths are not part of the public SemVer surface. See the root README for the full SemVer policy.
 

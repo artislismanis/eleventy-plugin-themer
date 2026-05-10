@@ -7,11 +7,8 @@
 
 import path from 'path';
 
-import {
-  getAvailableFeatures,
-  resolveResource,
-  DEFAULT_ASSET_ENTRIES,
-} from '@eleventy-plugin-themer/core';
+import { getAvailableFeatures, resolveResource } from '@eleventy-plugin-themer/core/internal/api';
+import { DEFAULT_ASSET_ENTRIES } from '@eleventy-plugin-themer/core/internal/defaults';
 import { logger } from '@eleventy-plugin-themer/core/logger';
 
 /**

@@ -18,75 +18,7 @@ import { getAvailableFeatures } from './cascade/features.mjs';
 import { configureCascade } from './cascade/index.mjs';
 import { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from './schemas.mjs';
 import { loadModuleFromPath } from './internal/load-module.mjs';
-
-/**
- * Symbol-keyed property on `eleventyConfig` that carries the shared cascade
- * context written by `eleventyPluginThemer`. Build adapters and helpers read
- * this to avoid re-resolving theme metadata or rediscovering features.
- *
- * Exposed as a non-enumerable property to keep it out of accidental
- * iteration (Eleventy reflects over its config in places).
- *
- * @internal
- */
-const THEMER_CONTEXT_KEY = '__themerContext';
-
-/**
- * Read the themer context that `eleventyPluginThemer` stashed on
- * `eleventyConfig`. Returns `undefined` if the plugin has not yet run.
- *
- * @param {Object} eleventyConfig
- * @returns {import('./types.mjs').ThemerContext|undefined}
- */
-export function getThemerContext(eleventyConfig) {
-  return eleventyConfig?.[THEMER_CONTEXT_KEY];
-}
-
-function setThemerContext(eleventyConfig, context) {
-  Object.defineProperty(eleventyConfig, THEMER_CONTEXT_KEY, {
-    value: context,
-    writable: true,
-    configurable: true,
-    enumerable: false,
-  });
-}
-
-/**
- * Get the Eleventy `dir` config computed by `eleventyPluginThemer`.
- *
- * Eleventy disallows calling `set*Directory()` from inside a plugin and
- * `addPlugin` discards plugin return values, so the plugin stashes its
- * computed `dir` on the shared themer context. Consumers spread it into the
- * config-function return value.
- *
- * @param {Object} eleventyConfig
- * @returns {{ input: string, output: string, includes: string }|undefined}
- *   The computed `dir` object, or `undefined` if `input`/`output` were not
- *   passed to the plugin.
- *
- * @example
- * import { eleventyPluginThemer, getThemerDir } from '@eleventy-plugin-themer/core';
- *
- * export default async function (eleventyConfig) {
- *   eleventyConfig.addPlugin(eleventyPluginThemer, {
- *     theme: '@eleventy-plugin-themer/theme-base',
- *     projectRoot: __dirname,
- *     input: 'content',
- *     output: '_site',
- *   });
- *   return { dir: getThemerDir(eleventyConfig), templateFormats: ['md', 'njk'] };
- * }
- */
-export function getThemerDir(eleventyConfig) {
-  const ctx = getThemerContext(eleventyConfig);
-  if (!ctx) {
-    throw new Error(
-      'getThemerDir: themer context not found. Ensure `eleventyPluginThemer` is registered ' +
-        'before calling getThemerDir.',
-    );
-  }
-  return ctx.dir;
-}
+import { getThemerContext, setThemerContext } from './internal/context.mjs';
 
 /**
  * Drop-in `eleventyDataSchema` validator: validates page front matter against
@@ -156,15 +88,99 @@ export function _resetThemerDataSchemaCache() {
   _cachedDataSchema = null;
 }
 
-// --- Public API (consumed by users and other packages) ---
-export { resolveThemeMetadata } from './cascade/metadata.mjs';
-export { getAvailableFeatures } from './cascade/features.mjs';
-export { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from './schemas.mjs';
+/**
+ * Create a project handle that binds `{ theme, projectRoot }` once and exposes
+ * pre-bound helpers for the three places consumers normally pass them:
+ * `eleventyPluginThemer`, `eleventyPluginThemerVite`, and `createPostcssConfig`.
+ *
+ * Theme metadata is resolved eagerly so `postcss.config.mjs` can use the
+ * project handle without an extra disk read at consumption time.
+ *
+ * @param {Object} args
+ * @param {string} args.theme - Theme package name.
+ * @param {string} args.projectRoot - Absolute project root.
+ * @returns {{
+ *   theme: string,
+ *   projectRoot: string,
+ *   themeMetadata: Object,
+ *   eleventyPlugin: (eleventyConfig: Object, extra?: Object) => Promise<Object>,
+ *   viteOptions: (extra?: Object) => Object,
+ *   postcssOptions: (extra?: Object) => Object,
+ * }}
+ *
+ * @example
+ * // eleventy.config.mjs
+ * import { createThemerProject, eleventyPluginThemer } from '@eleventy-plugin-themer/core';
+ * import { eleventyPluginThemerVite } from '@eleventy-plugin-themer/build-vite';
+ *
+ * const themer = createThemerProject({ theme: THEME_NAME, projectRoot: __dirname });
+ *
+ * export default async function (eleventyConfig) {
+ *   const { dir } = await themer.eleventyPlugin(eleventyConfig, { input: 'content', output: '_site' });
+ *   eleventyConfig.addPlugin(eleventyPluginThemerVite, themer.viteOptions({ optimizations: {...} }));
+ *   return { dir };
+ * }
+ *
+ * @example
+ * // postcss.config.mjs
+ * import { createThemerProject } from '@eleventy-plugin-themer/core';
+ * import { createPostcssConfig } from '@eleventy-plugin-themer/build-vite/postcss';
+ *
+ * const themer = createThemerProject({ theme: THEME_NAME, projectRoot: __dirname });
+ * export default await createPostcssConfig(themer.postcssOptions());
+ */
+/**
+ * Identity helper that returns its argument typed as `ThemeUserConfig`.
+ *
+ * Pure ergonomics for `content/_data/theme.{js,mjs}`: the JSDoc annotation
+ * on the parameter gives editors auto-completion and structural validation
+ * without requiring a TypeScript build. At runtime it's just `(c) => c`.
+ *
+ * @param {import('./types.mjs').ThemeUserConfig} config
+ * @returns {import('./types.mjs').ThemeUserConfig}
+ *
+ * @example
+ * // content/_data/theme.js
+ * import { defineThemeConfig } from '@eleventy-plugin-themer/core';
+ * export default defineThemeConfig({
+ *   themeToggle: { defaultTheme: 'auto', showToggle: true },
+ * });
+ */
+export function defineThemeConfig(config) {
+  return config;
+}
 
-// --- Internal API (used by build-vite peer package) ---
-export { resolveOverridePaths, DEFAULT_ASSET_ENTRIES } from './defaults.mjs';
-export { getThemeRoot } from './cascade/paths.mjs';
-export { resolveResource } from './cascade/resolver.mjs';
+export function createThemerProject({ theme, projectRoot } = {}) {
+  if (!theme) {
+    throw new Error('createThemerProject requires a `theme` option.');
+  }
+  if (!projectRoot) {
+    throw new Error('createThemerProject requires a `projectRoot` option.');
+  }
+
+  const themeMetadata = resolveThemeMetadata(projectRoot, theme);
+
+  return {
+    theme,
+    projectRoot,
+    themeMetadata,
+    eleventyPlugin: (eleventyConfig, extra = {}) =>
+      eleventyPluginThemer(eleventyConfig, { theme, projectRoot, ...extra }),
+    viteOptions: (extra = {}) => ({ theme, projectRoot, ...extra }),
+    postcssOptions: (extra = {}) => ({ themeMetadata, projectRoot, ...extra }),
+  };
+}
+
+// --- Public API (consumed by users) ---
+//
+// These are the only symbols promised across minor releases (subject to the
+// 0.x policy in CLAUDE.md). The cross-package internal surface
+// (getThemerContext, getThemerDir, getThemeRoot, resolveResource,
+// getAvailableFeatures) is exposed via the
+// `@eleventy-plugin-themer/core/internal/api` subpath instead — see
+// `lib/internal/api.mjs`.
+export { resolveThemeMetadata } from './cascade/metadata.mjs';
+export { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from './schemas.mjs';
 
 /**
  * Eleventy plugin for theme integration.
