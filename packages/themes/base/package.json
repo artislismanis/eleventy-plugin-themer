@@ -43,13 +43,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/artislismanis/eleventy-base-blog-template.git",
+    "url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
     "directory": "packages/themes/base"
   },
   "bugs": {
-    "url": "https://github.com/artislismanis/eleventy-base-blog-template/issues"
+    "url": "https://github.com/artislismanis/eleventy-plugin-themer/issues"
   },
-  "homepage": "https://github.com/artislismanis/eleventy-base-blog-template/tree/main/packages/themes/base#readme",
+  "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/themes/base#readme",
   "dependencies": {
     "@eleventy-plugin-themer/core": "^0.0.0",
     "luxon": "^3.7.0",

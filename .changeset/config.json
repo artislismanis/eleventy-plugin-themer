@@ -1,9 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
-  "changelog": [
-    "@changesets/changelog-github",
-    { "repo": "artislismanis/eleventy-base-blog-template" }
-  ],
+  "changelog": ["@changesets/changelog-github", { "repo": "artislismanis/eleventy-plugin-themer" }],
   "commit": false,
   "fixed": [],
   "linked": [
