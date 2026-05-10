@@ -40,13 +40,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/artislismanis/eleventy-plugin-themer.git",
+    "url": "git+https://github.com/artislismanis/eleventy-base-blog-template.git",
     "directory": "packages/build/vite"
   },
   "bugs": {
-    "url": "https://github.com/artislismanis/eleventy-plugin-themer/issues"
+    "url": "https://github.com/artislismanis/eleventy-base-blog-template/issues"
   },
-  "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/build/vite#readme",
+  "homepage": "https://github.com/artislismanis/eleventy-base-blog-template/tree/main/packages/build/vite#readme",
   "dependencies": {
     "@eleventy-plugin-themer/core": "^0.0.0",
     "glob": "^13.0.0",
