@@ -121,8 +121,11 @@ export async function themerDataSchema(data) {
         ctx.resolvedOverridePaths,
       );
     } else if (data?.themeMetadata) {
-      // Backwards-compat path: rebuild the schema from globalData. Slightly
-      // less efficient (rediscovers features) but always works.
+      // Fallback path: Eleventy does not always populate
+      // `data.eleventy.eleventyConfig` at the moment globalData is resolved,
+      // so build the schema from the `themeMetadata` global data registered
+      // by `eleventyPluginThemer`. Slightly less efficient (rediscovers
+      // features) but always works.
       featuresSchema = featuresFrontMatterSchema(process.cwd(), data.themeMetadata);
     } else {
       throw new Error(
@@ -155,43 +158,13 @@ export function _resetThemerDataSchemaCache() {
 
 // --- Public API (consumed by users and other packages) ---
 export { resolveThemeMetadata } from './cascade/metadata.mjs';
-export { getAvailableFeatures, resolveFeatureEntryPath } from './cascade/features.mjs';
+export { getAvailableFeatures } from './cascade/features.mjs';
 export { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from './schemas.mjs';
 
 // --- Internal API (used by build-vite peer package) ---
 export { resolveOverridePaths, DEFAULT_ASSET_ENTRIES } from './defaults.mjs';
-export { getThemeRoot, buildPaths } from './cascade/paths.mjs';
+export { getThemeRoot } from './cascade/paths.mjs';
 export { resolveResource } from './cascade/resolver.mjs';
-
-/**
- * Generate Eleventy dir configuration for a theme with cascade support.
- *
- * @deprecated Prefer registering `eleventyPluginThemer` via `addPlugin` and
- *   calling `getThemerDir(eleventyConfig)` to retrieve the computed `dir`.
- *   Retained for backward compatibility.
- *
- * @param {Object} options
- * @param {string} options.theme - Theme package name.
- * @param {string} options.projectRoot - Project root path.
- * @param {string} options.input - Input directory.
- * @param {string} options.output - Output directory.
- * @returns {{ dir: { input: string, output: string, includes: string } }}
- */
-export function generateDirConfig(options = {}) {
-  const { theme, projectRoot = process.cwd(), input, output } = options;
-
-  if (!theme) {
-    throw new Error('The `generateDirConfig` function requires a `theme` name option.');
-  }
-
-  const themeMetadata = resolveThemeMetadata(projectRoot, theme);
-  const themeLayoutsPath = path.join(getThemeRoot(projectRoot, themeMetadata.name), 'layouts');
-  const relativeLayoutsPath = path.relative(path.join(projectRoot, input), themeLayoutsPath);
-
-  return {
-    dir: { input, output, includes: relativeLayoutsPath },
-  };
-}
 
 /**
  * Eleventy plugin for theme integration.
@@ -213,7 +186,8 @@ export function generateDirConfig(options = {}) {
  *   - `eleventyConfig.addPlugin(eleventyPluginThemer, opts)` (recommended; use
  *     `getThemerDir(eleventyConfig)` to retrieve `dir`).
  *   - `await eleventyPluginThemer(eleventyConfig, opts)` (direct call; the
- *     returned object also carries `dir`/metadata for backwards compatibility).
+ *     returned object also carries `dir`/metadata so the consumer can spread it
+ *     into the config-function return value).
  *
  * @param {Object} eleventyConfig - Eleventy configuration object
  * @param {Object} options

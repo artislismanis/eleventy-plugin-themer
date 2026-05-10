@@ -5,7 +5,9 @@
  * along with the resolved file path. Used by both override-helper registration
  * and theme-config validation in `lib/index.mjs`.
  *
- * Not exported from the public API.
+ * NOTE: Kept as a tiny extracted helper rather than inlined at each call site.
+ * Inlining trades two-line readability for divergence risk on the
+ * dynamic-import + extension-iteration pattern. Not part of the public API.
  */
 
 import fs from 'fs';

@@ -47,9 +47,3 @@ export function configureCascade(
   // Note: Template cascade (layouts) is configured via configureTemplateEngine
   // Note: Feature cascade is implicit (Vite handles resolution)
 }
-
-// Explicit re-exports — only what's consumed by lib/index.mjs and build-vite
-export { getAvailableFeatures, resolveFeatureEntryPath } from './features.mjs';
-export { resolveResource } from './resolver.mjs';
-export { getThemeRoot, buildPaths } from './paths.mjs';
-export { resolveThemeMetadata } from './metadata.mjs';

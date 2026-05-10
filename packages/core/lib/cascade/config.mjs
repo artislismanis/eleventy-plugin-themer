@@ -12,13 +12,18 @@ import fs from 'fs';
 import { UNSAFE_KEYS } from '../internal/safe-keys.mjs';
 
 /**
- * Deep merge configuration objects
+ * Deep merge configuration objects.
  *
  * Merge strategy:
  * - Arrays are replaced (not concatenated)
  * - Objects are deeply merged
  * - null explicitly clears the value
  * - Primitives are overwritten
+ *
+ * NOTE: Distinct from `deepMergeViteConfig` in build-vite by design. This
+ * variant is generic (recurse into every plain object); the Vite variant is
+ * shallow with explicit deep keys matched to Vite's config shape. Unifying
+ * would force one or the other to grow special cases.
  *
  * @param {Object} target - Base configuration (theme defaults)
  * @param {Object} source - Override configuration (user values)

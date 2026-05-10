@@ -33,6 +33,13 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 
 /**
+ * NOTE: PostCSS config files are loaded synchronously at module-import time,
+ * before Eleventy's async config function runs — so a consumer's
+ * `postcss.config.mjs` cannot read the themer context off `eleventyConfig`
+ * (it doesn't exist yet). It therefore re-reads `theme.json` via
+ * `resolveThemeMetadata`. Cost: one static-file read per build. The
+ * alternative (a side-channel from the plugin) is not worth the complexity.
+ *
  * @param {Object} args
  * @param {Object} args.themeMetadata - Output of `resolveThemeMetadata`.
  * @param {string} [args.projectRoot] - Project root used for resolving

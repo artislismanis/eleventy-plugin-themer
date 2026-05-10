@@ -25,28 +25,23 @@ Requires Node.js 22+.
 
 ```js
 // eleventy.config.mjs
-import { eleventyPluginThemer, generateDirConfig } from '@eleventy-plugin-themer/core';
+import { eleventyPluginThemer } from '@eleventy-plugin-themer/core';
 
 const THEME_NAME = '@eleventy-plugin-themer/theme-base';
 
 export default async function (eleventyConfig) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-  // Register theme plugin - handles metadata, helpers, template engine, layout aliases
-  await eleventyConfig.addPlugin(eleventyPluginThemer, {
+  // Direct call: returns the computed `dir` so it can be spread into the config-function
+  // return value (Eleventy defers `addPlugin` until after the function returns).
+  const { dir } = await eleventyPluginThemer(eleventyConfig, {
     theme: THEME_NAME,
     projectRoot: __dirname,
+    input: 'content',
+    output: '_site',
   });
 
-  // Use theme's dir configuration with cascade support
-  return {
-    ...generateDirConfig({
-      theme: THEME_NAME,
-      projectRoot: __dirname,
-      input: 'content',
-      output: '_site',
-    }),
-  };
+  return { dir };
 }
 ```
 
@@ -94,20 +89,9 @@ Eleventy plugin that handles theme registration. Sets up:
 - `projectRoot` (string, required) - Path to content repo root
 - `overridePaths` (Object) - Override paths configuration
 
-**Returns:** `{ themeMetadata, resolvedOverridePaths }`
+**Returns:** `{ themeMetadata, resolvedOverridePaths, discoveredFeatures, dir }`
 
-### `generateDirConfig(options)`
-
-Generates Eleventy `dir` configuration for use in the config return value.
-
-**Options:**
-
-- `theme` (string, required) - Theme package name
-- `projectRoot` (string) - Project root path
-- `input` (string) - Input directory
-- `output` (string) - Output directory
-
-**Returns:** `{ dir: { input, output, includes } }`
+When `input` and `output` are passed, the returned `dir` is `{ input, output, includes }` ready to spread into the Eleventy config-function return value. The same `dir` is also stashed in the themer context — retrieve it later via `getThemerDir(eleventyConfig)`.
 
 ### `resolveThemeMetadata(projectRoot, themeName)`
 

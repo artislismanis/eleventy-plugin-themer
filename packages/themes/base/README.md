@@ -27,26 +27,21 @@ npm install -D @eleventy-plugin-themer/build-vite @11ty/eleventy-plugin-vite
 
 ```js
 // eleventy.config.mjs
-import { eleventyPluginThemer, generateDirConfig } from '@eleventy-plugin-themer/core';
+import { eleventyPluginThemer } from '@eleventy-plugin-themer/core';
 
 const THEME_NAME = '@eleventy-plugin-themer/theme-base';
 
 export default async function (eleventyConfig) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-  await eleventyConfig.addPlugin(eleventyPluginThemer, {
+  const { dir } = await eleventyPluginThemer(eleventyConfig, {
     theme: THEME_NAME,
     projectRoot: __dirname,
+    input: 'content',
+    output: '_site',
   });
 
-  return {
-    ...generateDirConfig({
-      theme: THEME_NAME,
-      projectRoot: __dirname,
-      input: 'content',
-      output: '_site',
-    }),
-  };
+  return { dir };
 }
 ```
 
@@ -248,6 +243,11 @@ Create `overrides/features/my-feature/index.js` (or `index.auto.js` for auto-ini
 // index.auto.js - auto-initializes when loaded
 console.log('My custom feature loaded');
 ```
+
+If both `index.auto.js` and `index.js` exist in the same directory, the
+plugin picks `index.auto.js` first. Use `index.auto.js` for self-running
+features and `index.js` for ones the consumer imports and initializes
+explicitly.
 
 Then reference in front matter: `feature: my-feature`
 

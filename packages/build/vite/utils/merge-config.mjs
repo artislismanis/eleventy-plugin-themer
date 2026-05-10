@@ -8,13 +8,19 @@
 import { UNSAFE_KEYS } from '@eleventy-plugin-themer/core/internal/safe-keys';
 
 /**
- * Deep merge Vite configuration objects
+ * Deep merge Vite configuration objects.
  *
  * Merges a base theme config with user-provided overrides.
  * Handles special cases for Vite's nested config structure:
  * - resolve.alias: Merged (user aliases override theme)
  * - css.preprocessorOptions.scss: Merged deeply
  * - plugins: Concatenated (theme first, then user)
+ *
+ * NOTE: Distinct from `deepMergeConfig` in core by design. This variant is
+ * shallow with an explicit set of deep-merge keys (`resolve`, `css`,
+ * `build` incl. `rollupOptions.input`, `server`) matched to Vite's config
+ * shape. Other top-level keys use shallow spread. If you add a new
+ * deep-merge key, update both this function and its tests.
  *
  * @param {Object} themeConfig - Base theme Vite configuration
  * @param {Object} userConfig - User's Vite configuration overrides

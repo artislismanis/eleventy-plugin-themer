@@ -280,12 +280,10 @@ Re-exported from `lib/index.mjs` for consumer use:
 | `themerDataSchema` | Drop-in `eleventyDataSchema` validator — re-export from `content/_data/eleventyDataSchema.js` |
 | `resolveThemeMetadata` | Read & validate `theme.json` for a theme package |
 | `getAvailableFeatures` | Cascade-aware feature discovery |
-| `resolveFeatureEntryPath` | Pick `index.auto.js` over `index.js` for a feature dir |
 | `resolveResource` | Resolve a single resource via the cascade |
-| `getThemeRoot`, `buildPaths` | Path helpers used by build adapters |
+| `getThemeRoot` | Path helper used by build adapters |
 | `resolveOverridePaths`, `DEFAULT_ASSET_ENTRIES` | Defaults consumed by build adapters |
 | `themeConfigSchema`, `featuresFrontMatterSchema`, `formatZodIssues` | Zod schemas + formatter for consumer-side validation |
-| `generateDirConfig` *(deprecated)* | Pre-3.0 dir helper — slated for removal in v4 |
 
 Subpath exports: `./logger`, `./types` (JSDoc typedefs only), `./internal/safe-keys`.
 
@@ -633,8 +631,6 @@ The following look like duplication or friction at first glance but are delibera
 
 5. **PostCSS config can't read the themer context** — `postcss.config.mjs` is loaded synchronously at module import time, before Eleventy's async config function runs. `createPostcssConfig` therefore re-reads `theme.json` via `resolveThemeMetadata`. The cost is one static-file read per build; not worth a side-channel.
 
-6. **`generateDirConfig` (deprecated) retained** — Pre-3.0 helper, kept for one more release cycle to ease migration. Slated for removal in v4.
-
 ---
 
 ## Resolved Issues
@@ -649,8 +645,7 @@ These issues were identified and fixed — watch for regressions:
 4. **Template context escaping** — analytics, disqus, copyright, meta description, git-sha (SEC-4)
 5. **Error chaining** in vite adapter catch block (SEC-6)
 6. **Dead code** removed from `resolver.mjs` (~120 lines: `createResourceResolver`, `createExistsChecker`, `scanDirectoriesWithCascade`)
-7. **Diamond imports** removed from `resolver.mjs` backwards-compat re-exports
-8. **Feature discovery** consolidated from 3x calls to 1x in vite adapter init
+7. **Feature discovery** consolidated from 3x calls to 1x in vite adapter init
 
 ### Post-3.0.0 Hardening
 

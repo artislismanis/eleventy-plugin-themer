@@ -1,11 +1,9 @@
 import fs from 'fs';
-import path from 'path';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
   eleventyPluginThemer,
-  generateDirConfig,
   getThemerContext,
   getThemerDir,
   themerDataSchema,
@@ -106,62 +104,6 @@ describe('eleventyPluginThemer', () => {
     expect(globalDataCall[1]).toMatchObject({
       name: '@eleventy-plugin-themer/theme-base',
     });
-  });
-});
-
-describe('generateDirConfig', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockImplementation((p) => {
-      if (p.includes('package.json')) {
-        return JSON.stringify({ name: 'test-theme', version: '1.0.0' });
-      }
-      if (p.includes('theme.json')) {
-        return JSON.stringify({ name: 'Test Theme' });
-      }
-      return '';
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('should throw when theme option is missing', () => {
-    expect(() =>
-      generateDirConfig({ projectRoot: '/project', input: 'content', output: '_site' }),
-    ).toThrow('requires a `theme` name option');
-  });
-
-  it('should return dir config with correct structure', () => {
-    const result = generateDirConfig({
-      theme: 'test-theme',
-      projectRoot: '/project',
-      input: 'content',
-      output: '_site',
-    });
-
-    expect(result).toHaveProperty('dir');
-    expect(result.dir).toHaveProperty('input', 'content');
-    expect(result.dir).toHaveProperty('output', '_site');
-    expect(result.dir).toHaveProperty('includes');
-  });
-
-  it('should set includes to relative path to theme layouts', () => {
-    const result = generateDirConfig({
-      theme: 'test-theme',
-      projectRoot: '/project',
-      input: 'content',
-      output: '_site',
-    });
-
-    // The includes path should be relative from input dir to theme layouts
-    const expectedThemeLayouts = path.join('/project', 'node_modules', 'test-theme', 'layouts');
-    const expectedRelative = path.relative(path.join('/project', 'content'), expectedThemeLayouts);
-
-    expect(result.dir.includes).toBe(expectedRelative);
   });
 });
 

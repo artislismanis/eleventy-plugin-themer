@@ -29,7 +29,7 @@ npm install -D purgecss critters html-minifier-terser node-html-parser glob
 
 ```js
 // eleventy.config.mjs
-import { eleventyPluginThemer, generateDirConfig } from '@eleventy-plugin-themer/core';
+import { eleventyPluginThemer } from '@eleventy-plugin-themer/core';
 import { eleventyPluginThemerVite } from '@eleventy-plugin-themer/build-vite';
 
 const THEME_NAME = '@eleventy-plugin-themer/theme-base';
@@ -37,14 +37,16 @@ const THEME_NAME = '@eleventy-plugin-themer/theme-base';
 export default async function (eleventyConfig) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-  // Register core theme plugin
-  await eleventyConfig.addPlugin(eleventyPluginThemer, {
+  // Register core theme plugin (direct call so we can spread `dir` into the return value)
+  const { dir } = await eleventyPluginThemer(eleventyConfig, {
     theme: THEME_NAME,
     projectRoot: __dirname,
+    input: 'content',
+    output: '_site',
   });
 
   // Register Vite plugin with optimizations
-  await eleventyConfig.addPlugin(eleventyPluginThemerVite, {
+  await eleventyPluginThemerVite(eleventyConfig, {
     theme: THEME_NAME,
     projectRoot: __dirname,
     optimizations: {
@@ -58,14 +60,7 @@ export default async function (eleventyConfig) {
     },
   });
 
-  return {
-    ...generateDirConfig({
-      theme: THEME_NAME,
-      projectRoot: __dirname,
-      input: 'content',
-      output: '_site',
-    }),
-  };
+  return { dir };
 }
 ```
 
@@ -89,6 +84,17 @@ Eleventy plugin that wraps `@11ty/eleventy-plugin-vite` with theme-aware configu
   - `minifyHTML` (boolean | Object) - Minify HTML output
   - `validateLinks` (boolean | Object) - Validate internal links
   - `preserveNonHtml` (Object) - Preserve non-HTML files. Provide `{ extensions: ['xml', 'txt'] }`
+
+### How `optimizations` merges with `theme.json#build`
+
+A theme can declare build hints in its `theme.json` under `build.*` (currently `build.purgeCSS` and `build.postcss`). These are merged with the consumer's `optimizations` config at plugin init by `mergeThemeBuildHints`:
+
+- **Arrays** (e.g. `purgeCSS.safelist.standard`, `safelist.deep`, `safelist.greedy`): theme entries come **first**, user entries **append** (deduped). Theme entries cannot be silently shadowed by a user typo, and greedy patterns the theme relies on stay at the head of the array.
+- **Objects** (non-array): user values **win** (last-spread). Setting `purgeCSS: true` enables the optimisation with the theme's hints; passing `purgeCSS: { safelist: {...} }` extends them per the array rule above.
+- **Booleans / primitives**: user value replaces.
+- **PostCSS plugins** (`build.postcss.plugins`) follow the same rule: theme-declared plugins run first, user-supplied plugins append. Override a theme plugin by re-declaring an entry with the same `package` name in your project's `postcss.config.mjs`.
+
+Disabling a theme-provided optimisation entirely: set the toggle to `false` in `optimizations` (e.g. `purgeCSS: false`).
 
 ### `getFeatureEntries(projectRoot, themeMetadata, opts?)`
 
