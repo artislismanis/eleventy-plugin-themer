@@ -50,8 +50,14 @@ export default [
 
   // Vitest config files: ignore unresolved vitest/config
   {
-    files: ['**/vitest.config.mjs', '**/vitest.config.base.mjs'],
+    files: ['**/vitest.config.mjs', '**/vitest.config.base.mjs', '**/vitest.config.browser.mjs'],
     rules: { 'import/no-unresolved': ['error', { ignore: ['^vitest'] }] },
+  },
+
+  // E2E browser tests: code in page.evaluate/waitForFunction runs in the browser
+  {
+    files: ['e2e/tests/browser/**/*.mjs'],
+    languageOptions: { globals: { ...globals.browser } },
   },
 
   // Build-vite package: ignore sub-path imports from workspace packages

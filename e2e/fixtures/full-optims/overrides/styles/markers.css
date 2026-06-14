@@ -1,0 +1,8 @@
+/* Neither class appears in any rendered HTML. PurgeCSS should drop
+   .e2e-purge-me and keep .e2e-keep-me (safelisted in eleventy.config.mjs). */
+.e2e-purge-me {
+  outline: 3px solid magenta;
+}
+.e2e-keep-me {
+  outline: 3px solid lime;
+}
