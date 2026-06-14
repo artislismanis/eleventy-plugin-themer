@@ -5,6 +5,7 @@
  * Works with any build system or no build system at all.
  */
 
+import fs from 'fs';
 import path from 'path';
 
 import { z } from 'zod';
@@ -13,12 +14,33 @@ import { configureTemplateEngine as _configureTemplateEngine } from './template-
 import { resolveOverridePaths as _resolveOverridePaths } from './defaults.mjs';
 import { getThemeRoot } from './cascade/paths.mjs';
 import { resolveThemeMetadata } from './cascade/metadata.mjs';
-import { resolveResource } from './cascade/resolver.mjs';
 import { getAvailableFeatures } from './cascade/features.mjs';
 import { configureCascade } from './cascade/index.mjs';
+import { deepMergeConfig } from './cascade/config.mjs';
 import { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from './schemas.mjs';
 import { loadModuleFromPath } from './internal/load-module.mjs';
 import { getThemerContext, setThemerContext } from './internal/context.mjs';
+
+/** Normalize OS path separators to POSIX (Eleventy layout keys/targets). */
+function toPosix(p) {
+  return p.split(path.sep).join('/');
+}
+
+/**
+ * Recursively list files under `dir`, as paths relative to it (POSIX-agnostic
+ * raw sep). Returns [] when `dir` is absent. Used to map user layout overrides
+ * to layout aliases.
+ */
+function listLayoutFiles(dir, base = dir) {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...listLayoutFiles(full, base));
+    else out.push(path.relative(base, full));
+  }
+  return out;
+}
 
 /**
  * Drop-in `eleventyDataSchema` validator: validates page front matter against
@@ -290,32 +312,39 @@ export async function eleventyPluginThemer(eleventyConfig, options = {}) {
     overridePaths: resolvedOverridePaths,
   });
 
-  // Layout aliases with cascade resolution
-  if (themeMetadata.layouts && Array.isArray(themeMetadata.layouts)) {
-    themeMetadata.layouts.forEach((layout) => {
-      const layoutFilename = path.basename(layout.path);
-      const resolvedLayout = resolveResource({
-        projectRoot,
-        themeName: themeMetadata.name,
-        resolvedOverridePaths,
-        resourceType: 'layouts',
-        filename: layoutFilename,
-        throwOnMissing: true,
-      });
-      eleventyConfig.addLayoutAlias(layout.name, resolvedLayout.path);
-    });
+  // Layout overrides: a file in `overrides/layouts` shadows the same-named
+  // theme layout. Eleventy resolves a top-level `layout:` from a single
+  // includes dir (here, the theme's), so for each override file we register a
+  // layout alias pointing at its path *relative to the theme layouts dir*
+  // (what Eleventy's getLayoutPath joins against). A relative, forward-slashed
+  // target is OS-neutral, needs no temp dir/symlinks/copies, and Eleventy reads
+  // the live file each build so edits hot-reload. Partials cascade separately
+  // via the template loader.
+  if (typeof eleventyConfig.addLayoutAlias === 'function') {
+    const themeLayoutsDir = path.join(getThemeRoot(projectRoot, themeMetadata.name), 'layouts');
+    const overrideLayoutsDir = path.join(
+      projectRoot,
+      resolvedOverridePaths.layouts || 'overrides/layouts',
+    );
+    for (const rel of listLayoutFiles(overrideLayoutsDir)) {
+      const overrideFile = path.join(overrideLayoutsDir, rel);
+      const targetFromThemeDir = toPosix(path.relative(themeLayoutsDir, overrideFile));
+      eleventyConfig.addLayoutAlias(toPosix(rel), targetFromThemeDir);
+    }
   }
 
-  // Validate user theme override (fail-fast on typos and shape errors)
+  // Validate user theme override (fail-fast on typos and shape errors) and
+  // capture the value so we can merge it into the build-time config below.
   const userThemeModule = await loadModuleFromPath(
     path.join(projectRoot, resolvedOverridePaths.data),
     'theme',
   );
+  let userThemeConfig;
   if (userThemeModule) {
     const exported = userThemeModule.defaultExport;
-    const value = typeof exported === 'function' ? await exported() : exported;
-    if (value) {
-      const result = themeConfigSchema(themeMetadata).safeParse(value);
+    userThemeConfig = typeof exported === 'function' ? await exported() : exported;
+    if (userThemeConfig) {
+      const result = themeConfigSchema(themeMetadata).safeParse(userThemeConfig);
       if (!result.success) {
         const allowed = Object.keys(themeMetadata.config || {}).join(', ') || '(none)';
         throw new Error(
@@ -324,6 +353,35 @@ export async function eleventyPluginThemer(eleventyConfig, options = {}) {
         );
       }
     }
+  }
+
+  // Merged theme config (theme.json defaults + user theme.js). Stashed on the
+  // context so build adapters can read build-relevant config (e.g. the Prism
+  // theme) that the user overrode — the template-time `theme` global is not
+  // visible to the build. Matches the `theme` global produced by the cascade.
+  const mergedThemeConfig = deepMergeConfig(themeMetadata.config || {}, userThemeConfig || {});
+
+  // Fail-fast on an unknown front-matter `features` value, per page. A `_data`
+  // `eleventyDataSchema` only validates the global data object (once), so it
+  // never sees per-page front matter; this preprocessor runs for every
+  // template with its merged data and lists the available features on error.
+  if (typeof eleventyConfig.addPreprocessor === 'function') {
+    const featuresSchema = featuresFrontMatterSchema(
+      projectRoot,
+      themeMetadata,
+      resolvedOverridePaths,
+    );
+    eleventyConfig.addPreprocessor('themer-features', '*', (data) => {
+      const features = data?.features;
+      if (features === undefined || features === null) return;
+      const result = featuresSchema.safeParse(features);
+      if (!result.success) {
+        const where = data?.page?.inputPath ?? 'unknown template';
+        throw new Error(
+          `Invalid theme feature in front matter (${where}):\n${formatZodIssues(result.error)}`,
+        );
+      }
+    });
   }
 
   // Auto-watch override directories so user edits trigger Eleventy rebuilds.
@@ -352,11 +410,12 @@ export async function eleventyPluginThemer(eleventyConfig, options = {}) {
   // (build-vite, getThemerDir, themerDataSchema, etc.).
   setThemerContext(eleventyConfig, {
     themeMetadata,
+    mergedThemeConfig,
     resolvedOverridePaths,
     discoveredFeatures,
     projectRoot,
     dir,
   });
 
-  return { themeMetadata, resolvedOverridePaths, discoveredFeatures, dir };
+  return { themeMetadata, mergedThemeConfig, resolvedOverridePaths, discoveredFeatures, dir };
 }
