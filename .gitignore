@@ -1,5 +1,8 @@
 # Dependencies
 node_modules/
+# e2e fixtures link their node_modules to the repo root (a symlink, which the
+# trailing-slash rule above doesn't match); built by the test harness.
+e2e/fixtures/*/node_modules
 
 # Build output
 _site/

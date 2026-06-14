@@ -64,6 +64,50 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  e2e:
+    name: E2E (build output + negative paths)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Real Eleventy/Vite builds of fixtures, asserted against _site/, plus
+      # in-process negative-path and dev-server checks. Separate from the unit
+      # `test` job so slow builds never gate fast unit feedback.
+      - name: Run e2e (node)
+        run: npm run test:e2e
+
+  e2e-browser:
+    name: E2E (browser)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e (browser)
+        run: npm run test:e2e:browser
+
   audit:
     name: Audit
     runs-on: ubuntu-latest

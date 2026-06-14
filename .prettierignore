@@ -4,6 +4,11 @@ node_modules/
 # Build output
 _site/
 dist/
+.11ty-vite/
+
+# E2E fixtures: hand-authored consumer projects whose template/content
+# whitespace is meaningful (e.g. .njk producing .xml/.txt). Don't reformat.
+e2e/fixtures/
 
 # Coverage
 coverage/
