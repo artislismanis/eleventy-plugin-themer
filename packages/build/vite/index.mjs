@@ -166,17 +166,25 @@ function resolveBuildContext({ eleventyConfig }) {
   }
   return {
     themeMetadata: cached.themeMetadata,
+    mergedThemeConfig: cached.mergedThemeConfig,
     resolvedOverridePaths: cached.resolvedOverridePaths,
     discoveredFeatures: cached.discoveredFeatures,
   };
 }
 
 function buildViteOptions(ctx, opts) {
-  const { themeMetadata, resolvedOverridePaths, discoveredFeatures, featureEntries } = ctx;
+  const {
+    themeMetadata,
+    mergedThemeConfig,
+    resolvedOverridePaths,
+    discoveredFeatures,
+    featureEntries,
+  } = ctx;
   const { projectRoot, scriptsEntry, optimizations, viteOptions, tempFolderName } = opts;
 
   return createThemeViteConfig(themeMetadata, {
     projectRoot,
+    mergedConfig: mergedThemeConfig,
     resolvedOverridePaths,
     optimizations,
     discoveredFeatures,

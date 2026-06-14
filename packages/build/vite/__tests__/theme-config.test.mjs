@@ -76,6 +76,32 @@ describe('createThemeViteConfig', () => {
     expect(result.resolve.alias['@theme']).toContain('test-theme');
   });
 
+  describe('codeHighlighting reaches the prism plugin', () => {
+    it('passes mergedConfig.codeHighlighting (user override) to prismThemePlugin', async () => {
+      const { prismThemePlugin } = await import('../plugins/prism-theme.mjs');
+      const userCodeHighlighting = { prismTheme: 'prism-okaidia', diffHighlight: false };
+
+      createThemeViteConfig(
+        { name: 'test-theme', config: { codeHighlighting: { prismTheme: 'prism-tomorrow' } } },
+        { ...baseOptions, mergedConfig: { codeHighlighting: userCodeHighlighting } },
+      );
+
+      expect(prismThemePlugin).toHaveBeenCalledWith(userCodeHighlighting);
+    });
+
+    it('falls back to themeMetadata.config.codeHighlighting when no mergedConfig', async () => {
+      const { prismThemePlugin } = await import('../plugins/prism-theme.mjs');
+      const themeCodeHighlighting = { prismTheme: 'prism-tomorrow', diffHighlight: true };
+
+      createThemeViteConfig(
+        { name: 'test-theme', config: { codeHighlighting: themeCodeHighlighting } },
+        baseOptions,
+      );
+
+      expect(prismThemePlugin).toHaveBeenCalledWith(themeCodeHighlighting);
+    });
+  });
+
   describe('mergeThemeBuildHints — prototype pollution guard', () => {
     it('should not pollute Object.prototype via __proto__ key in themeBuild', () => {
       const before = Object.prototype.polluted;

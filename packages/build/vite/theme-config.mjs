@@ -129,6 +129,7 @@ function buildPluginsArray({
   projectRoot,
   themeName,
   themeMetadata,
+  codeHighlighting,
   stylesEntry,
   scriptsEntry,
   resolvedOverridePaths,
@@ -146,7 +147,10 @@ function buildPluginsArray({
       resolvedOverridePaths,
     }),
     featureServePlugin({ discoveredFeatures }),
-    prismThemePlugin(themeMetadata.config?.codeHighlighting),
+    // Use the merged (theme.json + user theme.js) codeHighlighting so a user's
+    // prismTheme/diffHighlight override reaches the build; fall back to theme
+    // defaults when no merged config was provided.
+    prismThemePlugin(codeHighlighting ?? themeMetadata.config?.codeHighlighting),
     ...userPlugins,
   ];
 
@@ -179,6 +183,7 @@ function buildPluginsArray({
 export function createThemeViteConfig(themeMetadata, options = {}) {
   const {
     projectRoot,
+    mergedConfig,
     resolvedOverridePaths = {},
     plugins = [],
     optimizations,
@@ -225,6 +230,7 @@ export function createThemeViteConfig(themeMetadata, options = {}) {
       projectRoot,
       themeName,
       themeMetadata,
+      codeHighlighting: mergedConfig?.codeHighlighting,
       stylesEntry,
       scriptsEntry,
       resolvedOverridePaths,
