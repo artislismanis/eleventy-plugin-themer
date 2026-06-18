@@ -169,7 +169,7 @@ describe('cascade/config.mjs', () => {
       const projectRoot = '/project';
       const themeMetadata = { name: 'test-theme' };
       const mockEleventyConfig = { addGlobalData: vi.fn() };
-      const configPath = path.join(projectRoot, 'content/_data', 'theme.js');
+      const configPath = path.join(projectRoot, 'theme.config.mjs');
 
       fs.existsSync.mockImplementation((p) => p === configPath);
 

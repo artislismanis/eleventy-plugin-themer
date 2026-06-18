@@ -106,7 +106,7 @@ Bind the two values you'd otherwise pass to four different call sites (`eleventy
 
 ### `defineThemeConfig(config)`
 
-Identity helper for `content/_data/theme.{js,mjs}` that types the argument as `ThemeUserConfig` via JSDoc. No runtime cost; pure editor ergonomics.
+Identity helper for `theme.config.mjs` that types the argument as `ThemeUserConfig` via JSDoc. No runtime cost; pure editor ergonomics.
 
 ```js
 import { defineThemeConfig } from '@eleventy-plugin-themer/core';
@@ -147,7 +147,7 @@ Discover all available features (theme + user) with source tracking.
 
 ```js
 import {
-  themeConfigSchema, // strict-key schema for content/_data/theme.js
+  themeConfigSchema, // strict-key schema for theme.config.mjs
   featuresFrontMatterSchema, // validates page front-matter `features` field
   formatZodIssues, // pretty-print zod errors
 } from '@eleventy-plugin-themer/core';
@@ -197,7 +197,7 @@ A theme package needs:
 }
 ```
 
-The `config` section provides defaults accessible in templates as `{{ theme.colors.light.primary }}`. Users override via `content/_data/theme.js`.
+The `config` section provides defaults accessible in templates as `{{ theme.colors.light.primary }}`. Users override via `theme.config.mjs`.
 
 ## Cascade Resolution
 

@@ -3,7 +3,7 @@
  *
  * Manages theme configuration with deep merge support.
  * Theme provides defaults via theme.json config section,
- * user overrides via content/_data/theme.js
+ * user overrides via the project's theme config file (theme.config.mjs).
  */
 
 import path from 'path';
@@ -76,20 +76,20 @@ export function deepMergeConfig(target, source) {
 }
 
 /**
- * Load user configuration from content/_data/theme.js
+ * Load user configuration from the project's theme config file
+ * (resolvedOverridePaths.themeConfig, default theme.config.mjs).
  *
  * @param {string} projectRoot - Path to content repo root
- * @param {Object} overridePaths - Override paths configuration
- * @param {Object} themeMetadata - Theme metadata object
+ * @param {Object} resolvedOverridePaths - Resolved override paths configuration
  * @returns {Promise<Object>} User config (empty object if not found)
  */
 async function loadUserConfig(projectRoot, resolvedOverridePaths = {}) {
-  const dataDir = path.join(projectRoot, resolvedOverridePaths.data || 'content/_data');
+  const rel = resolvedOverridePaths.themeConfig || 'theme.config.mjs';
+  const dir = path.join(projectRoot, path.dirname(rel));
+  const base = path.basename(rel, path.extname(rel));
 
-  // Check for theme.js or theme.mjs
-  const extensions = ['.js', '.mjs'];
-  for (const ext of extensions) {
-    const configPath = path.join(dataDir, `theme${ext}`);
+  for (const ext of ['.mjs', '.js']) {
+    const configPath = path.join(dir, `${base}${ext}`);
     if (fs.existsSync(configPath)) {
       try {
         const mod = await import(configPath);
