@@ -2,7 +2,7 @@
  * Zod schemas for runtime validation of theme-related user input.
  *
  * - `themeConfigSchema(themeMetadata)` validates a user's theme override
- *   (typically `content/_data/theme.js`). It is **strict** at the top level —
+ *   (typically `theme.config.mjs`). It is **strict** at the top level —
  *   any key not present in the theme's defaults is rejected as a typo. Inner
  *   shapes are unconstrained so themes can evolve their config freely.
  *

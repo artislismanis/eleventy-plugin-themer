@@ -75,7 +75,7 @@
       }
     },
     "config": {
-      "description": "Theme configuration options. Users override via content/_data/theme.js.",
+      "description": "Theme configuration options. Users override via theme.config.mjs.",
       "type": "object",
       "properties": {
         "codeHighlighting": {

@@ -154,7 +154,7 @@ export function _resetThemerDataSchemaCache() {
 /**
  * Identity helper that returns its argument typed as `ThemeUserConfig`.
  *
- * Pure ergonomics for `content/_data/theme.{js,mjs}`: the JSDoc annotation
+ * Pure ergonomics for the project's `theme.config.mjs`: the JSDoc annotation
  * on the parameter gives editors auto-completion and structural validation
  * without requiring a TypeScript build. At runtime it's just `(c) => c`.
  *
@@ -162,7 +162,7 @@ export function _resetThemerDataSchemaCache() {
  * @returns {import('./types.mjs').ThemeUserConfig}
  *
  * @example
- * // content/_data/theme.js
+ * // theme.config.mjs
  * import { defineThemeConfig } from '@eleventy-plugin-themer/core';
  * export default defineThemeConfig({
  *   themeToggle: { defaultTheme: 'auto', showToggle: true },
@@ -335,9 +335,10 @@ export async function eleventyPluginThemer(eleventyConfig, options = {}) {
 
   // Validate user theme override (fail-fast on typos and shape errors) and
   // capture the value so we can merge it into the build-time config below.
+  const themeConfigRel = resolvedOverridePaths.themeConfig || 'theme.config.mjs';
   const userThemeModule = await loadModuleFromPath(
-    path.join(projectRoot, resolvedOverridePaths.data),
-    'theme',
+    path.join(projectRoot, path.dirname(themeConfigRel)),
+    path.basename(themeConfigRel, path.extname(themeConfigRel)),
   );
   let userThemeConfig;
   if (userThemeModule) {
@@ -394,6 +395,8 @@ export async function eleventyPluginThemer(eleventyConfig, options = {}) {
       if (!rel) continue;
       eleventyConfig.addWatchTarget(`./${rel}/**/*.*`);
     }
+    // The theme config file lives outside the data dir, so watch it explicitly.
+    eleventyConfig.addWatchTarget(`./${themeConfigRel}`);
   }
 
   // Compute Eleventy `dir` for consumers that pass `input`/`output`.

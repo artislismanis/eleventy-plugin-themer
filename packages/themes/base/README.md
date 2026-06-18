@@ -9,7 +9,7 @@ A blog theme for Eleventy built on `@eleventy-plugin-themer/core`. A port of [el
 - **Dark Mode** - Configurable light/dark toggle with system preference support
 - **Extensible Features** - Self-contained feature modules loaded per-page via front matter
 - **CSS Custom Properties** - Easy theming via variables for colors, typography, spacing
-- **Configurable** - Override theme defaults via `content/_data/theme.js`
+- **Configurable** - Override theme defaults via `theme.config.mjs`
 
 ## Installation
 
@@ -69,7 +69,7 @@ your-project/
 
 ## Theme Configuration
 
-Override theme defaults by creating `content/_data/theme.js`:
+Override theme defaults by creating `theme.config.mjs`:
 
 ```js
 export default {
@@ -190,7 +190,7 @@ feature: code-highlighting
 ---
 ```
 
-**Configuration** — override in `content/_data/theme.js`:
+**Configuration** — override in `theme.config.mjs`:
 
 ```js
 export default {

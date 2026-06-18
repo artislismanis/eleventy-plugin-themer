@@ -5,7 +5,7 @@
  * the configured PrismJS theme CSS and optional diff-highlight plugin.
  *
  * Theme is configured via theme.json `config.codeHighlighting.prismTheme`.
- * Users override in their `content/_data/theme.js`.
+ * Users override in their `theme.config.mjs`.
  */
 
 const VIRTUAL_MODULE_ID = 'virtual:prism-theme';

@@ -17,6 +17,12 @@ export const DEFAULT_OVERRIDE_PATHS = {
   lib: 'overrides/lib',
   data: 'content/_data',
   public: 'public',
+  // User theme config file (relative to projectRoot). Deliberately OUTSIDE the
+  // Eleventy data dir (`data`): a `theme.*` file there would be auto-loaded as a
+  // second `theme` global and Eleventy's array-concatenating deep merge would
+  // duplicate every array key (social links, etc.) against the merged global we
+  // register ourselves.
+  themeConfig: 'theme.config.mjs',
 };
 
 /**
