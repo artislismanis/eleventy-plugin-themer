@@ -5,6 +5,10 @@
     {
       "name": "code-highlighting",
       "entry": "features/code-highlighting/index.js"
+    },
+    {
+      "name": "back-to-top",
+      "entry": "features/back-to-top/index.js"
     }
   ],
 
@@ -18,7 +22,8 @@
           "code",
           "pre",
           "token",
-          "diff-highlight"
+          "diff-highlight",
+          "back-to-top"
         ],
         "greedy": ["language-"]
       }
@@ -72,27 +77,29 @@
     "colors": {
       "light": {
         "background": "#ffffff",
-        "surface": "#deebf7",
-        "primary": "#172c51",
-        "secondary": "#5b9bd5",
-        "accent": "#ca7033",
-        "text": "#172c51",
-        "textMuted": "#4a5568",
-        "link": "#5b9bd5",
-        "linkHover": "#172c51",
-        "border": "#deebf7"
+        "surface": "#f2f2f2",
+        "primary": "#082840",
+        "secondary": "#c0c0c0",
+        "accent": "#5f2b48",
+        "text": "#333333",
+        "textMuted": "#595959",
+        "link": "#082840",
+        "linkHover": "#5f2b48",
+        "linkVisited": "#17050f",
+        "border": "#e0e0e0"
       },
       "dark": {
-        "background": "#0f172a",
-        "surface": "#1e293b",
-        "primary": "#5b9bd5",
-        "secondary": "#ca7033",
-        "accent": "#ca7033",
-        "text": "#e2e8f0",
-        "textMuted": "#94a3b8",
-        "link": "#5b9bd5",
-        "linkHover": "#ca7033",
-        "border": "#334155"
+        "background": "#15202b",
+        "surface": "#1b2733",
+        "primary": "#1493fb",
+        "secondary": "#6969f7",
+        "accent": "#6969f7",
+        "text": "#dad8d8",
+        "textMuted": "#8a99a8",
+        "link": "#1493fb",
+        "linkHover": "#6969f7",
+        "linkVisited": "#a6a6f8",
+        "border": "#2a3845"
       }
     },
     "typography": {

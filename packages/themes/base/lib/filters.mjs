@@ -104,6 +104,23 @@ export default {
     return /^[a-z0-9-]+$/i.test(name) ? name : '';
   },
 
+  /**
+   * Convert a theme config key to a safe CSS custom-property segment:
+   * camelCase → kebab-case, lowercased, with any unsafe characters reduced to
+   * hyphens. Used when injecting theme color tokens so multi-word keys
+   * (linkHover, textMuted, linkVisited) map to the hyphenated var names the
+   * SCSS reads (e.g. `--theme-light-link-hover`). Also sanitizes the key to
+   * prevent CSS-identifier injection via config keys.
+   */
+  cssVarKey: function (key) {
+    if (typeof key !== 'string') return '';
+    return key
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  },
+
   // Social network URL generator (data-driven via theme.config.socialPlatforms)
   socialUrl: function (social, platformTemplates) {
     // Custom URL takes precedence (with protocol validation)

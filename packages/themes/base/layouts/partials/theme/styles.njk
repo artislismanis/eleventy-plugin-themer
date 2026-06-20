@@ -6,14 +6,14 @@
     {# Light theme colors #}
     {% if theme.colors.light %}
     {% for key, value in theme.colors.light %}
-    --theme-light-{{ key | slugify }}: {{ value | escapeCssValue }};
+    --theme-light-{{ key | cssVarKey }}: {{ value | escapeCssValue }};
     {% endfor %}
     {% endif %}
 
     {# Dark theme colors #}
     {% if theme.colors.dark %}
     {% for key, value in theme.colors.dark %}
-    --theme-dark-{{ key | slugify }}: {{ value | escapeCssValue }};
+    --theme-dark-{{ key | cssVarKey }}: {{ value | escapeCssValue }};
     {% endfor %}
     {% endif %}
 

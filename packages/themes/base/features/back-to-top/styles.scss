@@ -1,0 +1,59 @@
+// ============================================
+// Back to Top feature styles
+// ============================================
+//
+// Bundle-scoped CSS custom properties — override via overrides/styles or
+// content/_data/theme.js without touching this file.
+
+:root {
+  --back-to-top-bg: var(--color-primary);
+  --back-to-top-fg: var(--color-background);
+  --back-to-top-size: 2.75rem;
+  --back-to-top-offset: 1.5rem;
+  --back-to-top-radius: 0.5rem;
+}
+
+.back-to-top {
+  position: fixed;
+  right: var(--back-to-top-offset);
+  bottom: var(--back-to-top-offset);
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--back-to-top-size);
+  height: var(--back-to-top-size);
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--back-to-top-fg);
+  background: var(--back-to-top-bg);
+  border: none;
+  border-radius: var(--back-to-top-radius);
+  cursor: pointer;
+  opacity: 0.85;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover,
+  &:focus {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-to-top {
+    transition: none;
+
+    &:hover,
+    &:focus {
+      transform: none;
+    }
+  }
+}
