@@ -80,17 +80,19 @@ export default {
   colors: {
     light: {
       background: '#ffffff',
-      primary: '#172c51',
-      accent: '#ca7033',
-      text: '#172c51',
-      link: '#5b9bd5',
+      primary: '#082840',
+      accent: '#5f2b48',
+      text: '#333333',
+      link: '#082840',
+      linkVisited: '#17050f',
     },
     dark: {
-      background: '#0f172a',
-      primary: '#5b9bd5',
-      accent: '#ca7033',
-      text: '#e2e8f0',
-      link: '#5b9bd5',
+      background: '#15202b',
+      primary: '#1493fb',
+      accent: '#6969f7',
+      text: '#dad8d8',
+      link: '#1493fb',
+      linkVisited: '#a6a6f8',
     },
   },
   typography: {
@@ -234,6 +236,37 @@ export default {
 | `--code-line-number-fg`     | `rgb(255 255 255 / 30%)` | Line number colour            |
 | `--code-line-number-width`  | `3rem`                   | Line number column width      |
 | `--code-scrollbar-thumb-bg` | `rgb(255 255 255 / 20%)` | Scrollbar thumb colour        |
+
+#### back-to-top
+
+A floating button that appears once the page is scrolled past a threshold and
+smooth-scrolls back to the top. Fully self-contained (no template or data
+dependencies).
+
+**Usage** — add to any page's front matter:
+
+```yaml
+---
+feature: back-to-top
+---
+```
+
+**Customization** — import and call `init()` manually instead of using the
+auto-init variant:
+
+```js
+import { init, defaultConfig } from '@theme/features/back-to-top/index.js';
+init({ ...defaultConfig, threshold: 800 });
+```
+
+**CSS custom properties** (override in your own CSS):
+
+| Property               | Default                   | Description          |
+| ---------------------- | ------------------------- | -------------------- |
+| `--back-to-top-bg`     | `var(--color-primary)`    | Button background    |
+| `--back-to-top-fg`     | `var(--color-background)` | Glyph colour         |
+| `--back-to-top-size`   | `2.75rem`                 | Button width/height  |
+| `--back-to-top-offset` | `1.5rem`                  | Distance from corner |
 
 ### Creating Custom Features
 

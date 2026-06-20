@@ -393,6 +393,31 @@ describe('filters.mjs', () => {
     });
   });
 
+  describe('cssVarKey', () => {
+    it('should kebab-case camelCase keys so they match the SCSS var names', () => {
+      expect(filters.cssVarKey('linkHover')).toBe('link-hover');
+      expect(filters.cssVarKey('textMuted')).toBe('text-muted');
+      expect(filters.cssVarKey('linkVisited')).toBe('link-visited');
+    });
+
+    it('should pass single-word keys through lowercased', () => {
+      expect(filters.cssVarKey('background')).toBe('background');
+      expect(filters.cssVarKey('primary')).toBe('primary');
+    });
+
+    it('should sanitize unsafe characters to prevent CSS identifier injection', () => {
+      expect(filters.cssVarKey('foo;color:red')).toBe('foo-color-red');
+      expect(filters.cssVarKey('a}b{c')).toBe('a-b-c');
+      expect(filters.cssVarKey('--leading')).toBe('leading');
+    });
+
+    it('should handle non-strings', () => {
+      expect(filters.cssVarKey(null)).toBe('');
+      expect(filters.cssVarKey(undefined)).toBe('');
+      expect(filters.cssVarKey(42)).toBe('');
+    });
+  });
+
   describe('socialUrl', () => {
     const platforms = {
       twitter: 'https://twitter.com/{account}',
