@@ -1,6 +1,6 @@
 {
   "name": "@eleventy-plugin-themer/theme-base",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A minimal convention-based Eleventy theme with self-describing metadata and extensible features",
   "type": "module",
   "main": "lib/index.mjs",

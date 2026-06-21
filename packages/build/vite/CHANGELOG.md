@@ -1,5 +1,11 @@
 # @eleventy-plugin-themer/build-vite
 
+## 0.3.0
+
+### Patch Changes
+
+- [#12](https://github.com/artislismanis/eleventy-plugin-themer/pull/12) [`4b968dc`](https://github.com/artislismanis/eleventy-plugin-themer/commit/4b968dc08b329ec22c80a24cf7dd8a2798a15176) Thanks [@artislismanis](https://github.com/artislismanis)! - Run the `validateLinks` optimization last, regardless of the order keys appear in the consumer's `optimizations` config. Previously, declaring `validateLinks` before `preserveNonHtml` caused false "broken link" failures for links pointing at restored non-HTML files (e.g. `/feed.xml`, `/sitemap.xml`), because validation ran before those files were put back into the output.
+
 ## 0.1.0
 
 ### Minor Changes
