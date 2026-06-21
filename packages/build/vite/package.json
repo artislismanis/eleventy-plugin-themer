@@ -47,9 +47,9 @@
   "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/build/vite#readme",
   "dependencies": {
     "@eleventy-plugin-themer/core": "^0.4.0",
+    "beasties": "^0.4.2",
     "glob": "^13.0.0",
     "purgecss": "^6.0.0",
-    "critters": "^0.0.24",
     "html-minifier-terser": "^7.2.0",
     "node-html-parser": "^7.0.1"
   },
