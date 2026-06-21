@@ -1,5 +1,11 @@
 # @eleventy-plugin-themer/build-vite
 
+## 0.4.1
+
+### Patch Changes
+
+- [#16](https://github.com/artislismanis/eleventy-plugin-themer/pull/16) [`63b162d`](https://github.com/artislismanis/eleventy-plugin-themer/commit/63b162d28ae83cfc36e8666a14754becba17fde0) Thanks [@artislismanis](https://github.com/artislismanis)! - Replace the deprecated `critters` dependency with its maintained drop-in fork `beasties` for critical-CSS inlining. No API or behaviour change; removes the npm deprecation warning consumers saw on install.
+
 ## 0.4.0
 
 ### Minor Changes
