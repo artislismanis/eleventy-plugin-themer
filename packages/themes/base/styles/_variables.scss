@@ -7,7 +7,7 @@
 //          var(--theme-dark-*, fallback) for dark theme
 //
 // The theme config (theme.json) provides default colors.
-// Users can override via content/_data/theme.js
+// Users can override via theme.config.mjs
 
 // ============================================
 // Light Theme (Default)
@@ -89,17 +89,20 @@
 // ============================================
 // Applies when user explicitly selects dark mode via toggle
 :root[data-theme='dark'] {
-  --color-background: var(--theme-dark-background, #15202b);
-  --color-surface: var(--theme-dark-surface, #1b2733);
-  --color-primary: var(--theme-dark-primary, #1493fb);
-  --color-secondary: var(--theme-dark-secondary, #6969f7);
-  --color-accent: var(--theme-dark-accent, #6969f7);
-  --color-text: var(--theme-dark-text, #dad8d8);
-  --color-text-muted: var(--theme-dark-text-muted, #8a99a8);
-  --color-link: var(--theme-dark-link, #1493fb);
-  --color-link-hover: var(--theme-dark-link-hover, #6969f7);
-  --color-link-visited: var(--theme-dark-link-visited, #a6a6f8);
-  --color-border: var(--theme-dark-border, #2a3845);
+  --color-background: var(--theme-dark-background, #171717);
+  --color-surface: var(--theme-dark-surface, #262626);
+  --color-primary: var(--theme-dark-primary, #f5f5f5);
+  --color-secondary: var(--theme-dark-secondary, #737373);
+  --color-accent: var(--theme-dark-accent, #9b3b54);
+  --color-text: var(--theme-dark-text, #e5e5e5);
+  --color-text-muted: var(--theme-dark-text-muted, #a3a3a3);
+  --color-link: var(--theme-dark-link, #fafafa);
+  --color-link-hover: var(--theme-dark-link-hover, #9b3b54);
+  --color-link-visited: var(--theme-dark-link-visited, #a3a3a3);
+  --color-border: var(--theme-dark-border, #404040);
+
+  // Hero gradient: darker -> lighter. In dark mode surface is the darker grey.
+  --hero-gradient: linear-gradient(160deg, var(--color-surface), var(--color-border));
 
   // Status colors (lighter for dark mode)
   --color-success: #4ade80;
