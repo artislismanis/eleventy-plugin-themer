@@ -43,7 +43,15 @@ export const KNOWN_OPTIMIZATIONS = new Set(Object.keys(PLUGIN_REGISTRY));
  * @param {string} [dirs.temp] - Temp directory (optional, passed to plugins via options)
  */
 export async function runOptimizations(optimizations, dirs) {
-  for (const [name, config] of Object.entries(optimizations)) {
+  // validateLinks must run last so it checks the final output — after transforms
+  // (purge/critical/minify) and after preserveNonHtml restores files like
+  // feed.xml / sitemap.xml. Stable-sort keeps every other optimization in the
+  // order the consumer declared them.
+  const entries = Object.entries(optimizations).sort(
+    ([a], [b]) => (a === 'validateLinks' ? 1 : 0) - (b === 'validateLinks' ? 1 : 0),
+  );
+
+  for (const [name, config] of entries) {
     // Skip if optimization is disabled
     if (!config) continue;
 

@@ -1,10 +1,41 @@
 import { DateTime } from 'luxon';
+import * as simpleIcons from 'simple-icons';
 
 import {
   escapeHtml as _escapeHtml,
   escapeCssValue as _escapeCssValue,
   safeUrl as _safeUrl,
 } from './escape.mjs';
+
+// Index every simple-icons brand by its slug once at module load. Each icon
+// object exposes { title, slug, hex, path, ... }; we only need slug -> path.
+const ICON_BY_SLUG = (() => {
+  const map = new Map();
+  for (const key of Object.keys(simpleIcons)) {
+    const icon = simpleIcons[key];
+    if (icon && typeof icon === 'object' && icon.slug && icon.path) {
+      map.set(icon.slug, icon.path);
+    }
+  }
+  return map;
+})();
+
+// Map a platform name to its simple-icons slug where they differ. Twitter's glyph
+// was retired in favour of X, so legacy `twitter` config resolves to the X icon.
+const PLATFORM_SLUG_ALIASES = { twitter: 'x' };
+
+// Brands simple-icons has removed at the owner's request but that are common
+// enough to ship a fallback glyph for (24x24 viewBox path data).
+const SUPPLEMENTAL_ICON_PATHS = {
+  linkedin:
+    'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z',
+};
+
+// Trusted SVG wrapper: path data comes from simple-icons / our supplemental map
+// (never user input). fill=currentColor lets the glyph inherit the link colour.
+function buildSocialSvg(path) {
+  return `<svg class="social-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
+}
 
 export default {
   // Security filters
@@ -143,6 +174,16 @@ export default {
     }
 
     return _safeUrl(template.replace('{account}', account));
+  },
+
+  // Inline brand SVG for a social platform (currentColor, accessible). Returns
+  // '' when the platform has no known icon, so the template can fall back to text.
+  socialIcon: function (platform) {
+    if (typeof platform !== 'string' || !platform) return '';
+    const key = platform.toLowerCase();
+    const slug = PLATFORM_SLUG_ALIASES[key] || key;
+    const path = ICON_BY_SLUG.get(slug) || SUPPLEMENTAL_ICON_PATHS[slug];
+    return path ? buildSocialSvg(path) : '';
   },
 
   // Generate display label for social link

@@ -78,21 +78,25 @@ export default {
     showToggle: true,
   },
   colors: {
+    // Grayscale theme with a single reddish-plum accent. Links are grayscale and
+    // light up to the accent on hover (linkHover defaults to the accent).
     light: {
       background: '#ffffff',
-      primary: '#082840',
-      accent: '#5f2b48',
-      text: '#333333',
-      link: '#082840',
-      linkVisited: '#17050f',
+      primary: '#1a1a1a',
+      accent: '#9b3b54',
+      text: '#262626',
+      link: '#1a1a1a',
+      linkHover: '#9b3b54',
+      linkVisited: '#595959',
     },
     dark: {
-      background: '#15202b',
-      primary: '#1493fb',
-      accent: '#6969f7',
-      text: '#dad8d8',
-      link: '#1493fb',
-      linkVisited: '#a6a6f8',
+      background: '#171717',
+      primary: '#f5f5f5',
+      accent: '#9b3b54',
+      text: '#e5e5e5',
+      link: '#fafafa',
+      linkHover: '#9b3b54',
+      linkVisited: '#a3a3a3',
     },
   },
   typography: {
@@ -107,13 +111,19 @@ export default {
   },
   social: [],
   footer: {
-    copyright: '{year} {site.title}',
-    showPoweredBy: true,
+    copyright: '{year} {site.title}', // supports {year} and {site.title}
+    startYear: null, // e.g. 2024 -> renders a "2024–<current>" range
+    alignment: 'center', // footer-bottom row: 'left' | 'center' | 'right'
+    showPoweredBy: true, // "Built with Eleventy" line
+    showGitSha: true, // short commit hash (see Build metadata below)
+    gitHubRepo: '', // e.g. 'https://github.com/you/repo' -> links the commit
   },
 };
 ```
 
 All config values are deeply merged with the theme's defaults from `theme.json`. Use `null` to explicitly clear a value.
+
+`footer.alignment` controls only the bottom row (copyright / "Built with" / commit hash); the footer navigation (menu + social links) layout is unaffected.
 
 ## Customization
 
@@ -332,6 +342,72 @@ eleventyNavigation:
 ```
 
 Footer navigation uses `parent: footer`. Hierarchical pages get automatic breadcrumbs.
+
+## Build metadata
+
+The theme provides a `build` global with the current git commit and a build timestamp,
+so the footer commit hash works without any setup on your side:
+
+| Field               | Example          |
+| ------------------- | ---------------- |
+| `build.gitSha`      | full commit SHA  |
+| `build.gitShaShort` | 7-char short SHA |
+| `build.timestamp`   | ISO build time   |
+
+It runs `git rev-parse HEAD` in your project at build time (falling back to
+`unknown`/`dev` outside a git repo). The footer shows `build.gitShaShort` when
+`footer.showGitSha` is enabled, linking to the commit if `footer.gitHubRepo` is set.
+
+To override (e.g. inject a CI build number), provide your own
+`content/_data/build.js` — Eleventy's directory data takes precedence over the
+theme's global data.
+
+## Social links
+
+Configure social links via the `social` array in `theme.config.mjs`. Each entry needs a
+`platform` plus **either** an `account` (expanded through a URL template) **or** a full
+`url`:
+
+```js
+export default {
+  social: [
+    { platform: 'github', account: 'artislismanis' },
+    { platform: 'mastodon', url: 'https://fosstodon.org/@you' },
+    { platform: 'linkedin', account: 'your-handle', label: 'LinkedIn' },
+  ],
+};
+```
+
+- `account` is expanded using the templates in `theme.json#config.socialPlatforms`
+  (`github`, `x`, `linkedin`, `youtube`, `instagram`, `facebook`, `tiktok`, `discord`,
+  `twitch`, `reddit`, `bluesky`, `mastodon`). Add your own templates there for other
+  networks. Mastodon also accepts an `@user@instance` account.
+- `url` takes precedence over `account` and is validated by `safeUrl` (see Security
+  helpers).
+- `label` is optional (used for the `aria-label`); it defaults to the capitalized
+  platform name.
+
+### Icons
+
+Icons are inline brand SVGs from [`simple-icons`](https://www.npmjs.com/package/simple-icons),
+rendered with `fill="currentColor"` so they inherit the link colour (grey, plum on hover).
+**The `platform` value must match a simple-icons _slug_.** Browse and search slugs at
+**[simpleicons.org](https://simpleicons.org/)** — e.g. the "GitHub" tile has the slug
+`github`, "X" has `x`. The resolution order per link is:
+
+1. `social.icon` — a custom image path you provide (per-link override, wins over everything)
+2. the `simple-icons` brand SVG matched by slug
+3. a plain **text** label fallback when no icon is found
+
+Special cases handled in `lib/filters.mjs`:
+
+- **`twitter` is aliased to the `x` slug** (the Twitter glyph was retired upstream), so
+  legacy config keeps working.
+- A few brands have been **removed from simple-icons** at the owner's request (notably
+  **LinkedIn**). The theme ships fallback glyphs for those in the `SUPPLEMENTAL_ICON_PATHS`
+  map in `lib/filters.mjs` — add an entry there (keyed by slug, 24×24 path data) to cover
+  any other removed brand, or override `overrides/layouts/partials/social/icon.njk` to
+  fully customise rendering.
 
 ## Security helpers
 

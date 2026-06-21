@@ -54,7 +54,8 @@
     "@eleventy-plugin-themer/core": "^0.1.0",
     "luxon": "^3.7.0",
     "markdown-it": "^14.1.0",
-    "markdown-it-anchor": "^9.2.0"
+    "markdown-it-anchor": "^9.2.0",
+    "simple-icons": "^16.23.0"
   },
   "peerDependencies": {
     "@11ty/eleventy": "^3.1.0",

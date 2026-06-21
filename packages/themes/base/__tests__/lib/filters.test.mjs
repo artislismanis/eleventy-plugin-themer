@@ -579,4 +579,39 @@ describe('filters.mjs', () => {
       expect(result).toBe('');
     });
   });
+
+  describe('socialIcon', () => {
+    it('should return an inline currentColor SVG for a known brand', () => {
+      const svg = filters.socialIcon('github');
+
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('class="social-icon"');
+      expect(svg).toContain('fill="currentColor"');
+      expect(svg).toContain('aria-hidden="true"');
+      expect(svg).toMatch(/<path d="[^"]+"/);
+    });
+
+    it('should be case-insensitive', () => {
+      expect(filters.socialIcon('GitHub')).toContain('<svg');
+    });
+
+    it('should map legacy twitter to the X icon', () => {
+      expect(filters.socialIcon('twitter')).toBe(filters.socialIcon('x'));
+    });
+
+    it('should render a supplemental icon for brands simple-icons removed', () => {
+      // LinkedIn was removed from simple-icons; the theme ships a fallback glyph.
+      expect(filters.socialIcon('linkedin')).toContain('<svg');
+    });
+
+    it('should return an empty string for unknown platforms (text fallback)', () => {
+      expect(filters.socialIcon('not-a-real-platform')).toBe('');
+    });
+
+    it('should handle non-strings', () => {
+      expect(filters.socialIcon(null)).toBe('');
+      expect(filters.socialIcon(undefined)).toBe('');
+      expect(filters.socialIcon(42)).toBe('');
+    });
+  });
 });

@@ -12,6 +12,8 @@ import pkg from '../package.json' with { type: 'json' };
 
 import filters from './filters.mjs';
 import shortcodes, { pairedShortcodes } from './shortcodes.mjs';
+import buildData from './build-data.mjs';
+import externalLinks from './external-links.mjs';
 
 /**
  * Theme-level Eleventy configuration.
@@ -21,6 +23,10 @@ import shortcodes, { pairedShortcodes } from './shortcodes.mjs';
  * that depend on theme-specific decisions, etc.
  */
 function configure(eleventyConfig) {
+  // Provide build metadata (git commit, timestamp) as the `build` global so the
+  // footer can show the deployed commit without the consumer wiring up a data file.
+  eleventyConfig.addGlobalData('build', buildData);
+
   const md = markdownIt({
     html: true,
     breaks: true,
@@ -43,6 +49,6 @@ export default {
   filters,
   shortcodes,
   pairedShortcodes,
-  transforms: {},
+  transforms: { externalLinks },
   configure,
 };
