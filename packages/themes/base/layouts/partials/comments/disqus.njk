@@ -1,9 +1,9 @@
 {#
   Disqus comments partial
-  Requires: theme.comments.enabled, theme.comments.disqus.shortname
+  Requires: site.comments.provider == 'disqus', site.comments.disqus.shortname
   Also checks page frontmatter `comments !== false` to allow per-page disable
 #}
-{% if theme.comments.disqus and theme.comments.disqus.shortname %}
+{% if site.comments.disqus and site.comments.disqus.shortname %}
   {% if comments !== false %}
     <section class="comments" id="comments">
       <h2>Comments</h2>
@@ -17,7 +17,7 @@
           var d = document,
             s = d.createElement('script');
           s.src =
-            'https://{{ theme.comments.disqus.shortname | escapeJsString }}.disqus.com/embed.js';
+            'https://{{ site.comments.disqus.shortname | escapeJsString }}.disqus.com/embed.js';
           s.setAttribute('data-timestamp', +new Date());
           (d.head || d.body).appendChild(s);
         })();

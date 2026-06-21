@@ -1,13 +1,13 @@
 {#
   Social links partial
-  Iterates through theme.social and renders icons
+  Iterates through site.social and renders icons
   Supports both account-based URLs and custom URLs
 #}
-{% if theme and theme.social and theme.social.length %}
+{% if site and site.social and site.social.length %}
   <nav class="social-links" aria-label="Social media links">
-    {% for social in theme.social %}
+    {% for social in site.social %}
       <a
-        href="{{ social | socialUrl(theme.socialPlatforms) | escapeAttr }}"
+        href="{{ social | socialUrl | safeUrl | escapeAttr }}"
         class="social-link social-link--{{ social.platform | escapeAttr }}"
         rel="me noopener noreferrer"
         target="_blank"

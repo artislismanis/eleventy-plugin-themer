@@ -204,7 +204,7 @@ The `config` section provides defaults accessible in templates as `{{ theme.colo
 All resources follow the same priority: **user files win over theme files**.
 
 - Layouts: user's `overrides/layouts/post.njk` overrides theme's `layouts/post.njk`
-- Data: user's `content/_data/site.js` overrides theme's `data/site.js`
+- Data: user's `content/_data/site.mjs` overrides theme's `data/site.js`
 - Features: user's `overrides/features/code-highlighting/` overrides theme's `features/code-highlighting/`
 - Assets: user's `public/favicon.svg` overrides theme's `public/favicon.svg`
 

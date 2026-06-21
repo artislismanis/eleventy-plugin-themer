@@ -5,7 +5,14 @@ vi.mock('../lib/cascade/features.mjs', () => ({
 }));
 
 import { getAvailableFeatures } from '../lib/cascade/features.mjs';
-import { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from '../lib/schemas.mjs';
+import {
+  themeConfigSchema,
+  featuresFrontMatterSchema,
+  formatZodIssues,
+  siteDataSchema,
+  capabilitiesSchema,
+  siteCapabilityWarnings,
+} from '../lib/schemas.mjs';
 
 describe('schemas.mjs', () => {
   beforeEach(() => {
@@ -123,6 +130,97 @@ describe('schemas.mjs', () => {
       getAvailableFeatures.mockReturnValue(new Map([['gallery', {}]]));
       const schema = featuresFrontMatterSchema('/p', { name: 't' }, {});
       expect(schema.safeParse(undefined).success).toBe(true);
+    });
+  });
+
+  describe('siteDataSchema', () => {
+    it('accepts well-formed site data and passes identity fields through', () => {
+      const result = siteDataSchema.safeParse({
+        title: 'My site',
+        url: 'https://example.com/',
+        author: { name: 'A', email: 'a@b.c' },
+        social: [{ platform: 'github', account: 'octocat' }],
+        analytics: { plausible: 'example.com' },
+        branding: { favicon: '/favicon.svg' },
+        comments: { provider: 'disqus', disqus: { shortname: 'x' } },
+        features: { rss: true, search: false },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('hard-fails on a malformed social entry (missing platform)', () => {
+      const result = siteDataSchema.safeParse({ social: [{ account: 'nobody' }] });
+      expect(result.success).toBe(false);
+    });
+
+    it('hard-fails when a known key has the wrong type', () => {
+      const result = siteDataSchema.safeParse({ social: 'not-an-array' });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects an unknown comments provider', () => {
+      const result = siteDataSchema.safeParse({ comments: { provider: 'facebook' } });
+      expect(result.success).toBe(false);
+    });
+
+    it('treats all contract keys as optional', () => {
+      expect(siteDataSchema.safeParse({ title: 'only identity' }).success).toBe(true);
+    });
+  });
+
+  describe('capabilitiesSchema', () => {
+    it('accepts a well-formed declaration', () => {
+      const result = capabilitiesSchema.safeParse({
+        social: { render: 'icons', fallback: 'text' },
+        analytics: ['googleAnalytics', 'plausible'],
+        comments: ['disqus'],
+        search: false,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a non-array analytics list', () => {
+      expect(capabilitiesSchema.safeParse({ analytics: 'ga' }).success).toBe(false);
+    });
+  });
+
+  describe('siteCapabilityWarnings', () => {
+    const capabilities = {
+      social: { render: 'icons', fallback: 'text' },
+      analytics: ['plausible'],
+      comments: ['disqus'],
+      search: false,
+    };
+
+    it('returns no warnings when the theme implements everything requested', () => {
+      const warnings = siteCapabilityWarnings(
+        { analytics: { plausible: 'x' }, comments: { provider: 'disqus' } },
+        capabilities,
+      );
+      expect(warnings).toEqual([]);
+    });
+
+    it('warns for an analytics provider the theme does not declare', () => {
+      const warnings = siteCapabilityWarnings(
+        { analytics: { googleAnalytics: 'G-1' } },
+        capabilities,
+      );
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain('googleAnalytics');
+    });
+
+    it('warns for a comments provider the theme does not implement', () => {
+      const warnings = siteCapabilityWarnings({ comments: { provider: 'giscus' } }, capabilities);
+      expect(warnings[0]).toContain('giscus');
+    });
+
+    it('does not warn when comments are off (provider none)', () => {
+      expect(siteCapabilityWarnings({ comments: { provider: 'none' } }, capabilities)).toEqual([]);
+    });
+
+    it('warns when search is requested but unsupported', () => {
+      const warnings = siteCapabilityWarnings({ features: { search: true } }, capabilities);
+      expect(warnings[0]).toContain('search');
     });
   });
 

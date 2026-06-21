@@ -11,15 +11,30 @@ import path from 'path';
 import { z } from 'zod';
 
 import { configureTemplateEngine as _configureTemplateEngine } from './template-loader.mjs';
-import { resolveOverridePaths as _resolveOverridePaths } from './defaults.mjs';
+import {
+  resolveOverridePaths as _resolveOverridePaths,
+  SOCIAL_PLATFORMS,
+  THEMER_CONTRACT_VERSION,
+} from './defaults.mjs';
 import { getThemeRoot } from './cascade/paths.mjs';
 import { resolveThemeMetadata } from './cascade/metadata.mjs';
 import { getAvailableFeatures } from './cascade/features.mjs';
 import { configureCascade } from './cascade/index.mjs';
 import { deepMergeConfig } from './cascade/config.mjs';
-import { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from './schemas.mjs';
+import {
+  themeConfigSchema,
+  featuresFrontMatterSchema,
+  formatZodIssues,
+  siteDataSchema,
+  siteCapabilityWarnings,
+} from './schemas.mjs';
+import { expandSocialUrl } from './social.mjs';
 import { loadModuleFromPath } from './internal/load-module.mjs';
 import { getThemerContext, setThemerContext } from './internal/context.mjs';
+import { logger } from './logger.mjs';
+
+/** Layouts a theme MUST provide (or a site MUST override) — contract v1. */
+const REQUIRED_LAYOUTS = ['base.njk'];
 
 /** Normalize OS path separators to POSIX (Eleventy layout keys/targets). */
 function toPosix(p) {
@@ -172,6 +187,28 @@ export function defineThemeConfig(config) {
   return config;
 }
 
+/**
+ * Identity helper that returns its argument typed as `SiteData`.
+ *
+ * For the project's `content/_data/site.mjs`: gives editors auto-completion for
+ * the framework-owned site-data contract (social, analytics, branding, comments,
+ * features) alongside the site's own identity fields. At runtime it's `(s) => s`.
+ *
+ * @param {import('./types.mjs').SiteData} site
+ * @returns {import('./types.mjs').SiteData}
+ *
+ * @example
+ * // content/_data/site.mjs
+ * import { defineSiteData } from '@eleventy-plugin-themer/core';
+ * export default defineSiteData({
+ *   title: 'My site',
+ *   social: [{ platform: 'github', account: 'octocat' }],
+ * });
+ */
+export function defineSiteData(site) {
+  return site;
+}
+
 export function createThemerProject({ theme, projectRoot } = {}) {
   if (!theme) {
     throw new Error('createThemerProject requires a `theme` option.');
@@ -203,6 +240,13 @@ export function createThemerProject({ theme, projectRoot } = {}) {
 // `lib/internal/api.mjs`.
 export { resolveThemeMetadata } from './cascade/metadata.mjs';
 export { themeConfigSchema, featuresFrontMatterSchema, formatZodIssues } from './schemas.mjs';
+export { siteDataSchema, capabilitiesSchema, siteCapabilityWarnings } from './schemas.mjs';
+export { expandSocialUrl } from './social.mjs';
+export {
+  SOCIAL_PLATFORMS,
+  THEMER_CONTRACT_VERSION,
+  MIN_SUPPORTED_CONTRACT_VERSION,
+} from './defaults.mjs';
 
 /**
  * Eleventy plugin for theme integration.
@@ -258,9 +302,43 @@ export async function eleventyPluginThemer(eleventyConfig, options = {}) {
 
   eleventyConfig.addGlobalData('themeMetadata', themeMetadata);
 
+  // Framework-owned `socialUrl` filter: expands `site.social[]` entries against
+  // the canonical platform table (plus any theme extensions). Registered before
+  // theme helpers so a theme or user can still shadow it by name. Templates pipe
+  // the result through the theme's `safeUrl` for protocol validation/escaping.
+  const socialPlatforms = { ...SOCIAL_PLATFORMS, ...(themeMetadata.socialPlatforms || {}) };
+  eleventyConfig.addFilter('socialUrl', (social) => expandSocialUrl(social, socialPlatforms));
+
   // Load theme module and register theme-provided helpers
   const themeModule = await import(theme);
   const themeExports = themeModule.default;
+
+  // Minimum-spec conformance (contract v1): the theme entry must be an object,
+  // and the required layouts must resolve (from the theme or a user override).
+  if (!themeExports || typeof themeExports !== 'object') {
+    throw new Error(
+      `Theme "${theme}" default export must be an object (filters/shortcodes/transforms/configure). ` +
+        `Got ${themeExports === null ? 'null' : typeof themeExports}.`,
+    );
+  }
+  {
+    const themeLayoutsDir = path.join(getThemeRoot(projectRoot, themeMetadata.name), 'layouts');
+    const overrideLayoutsDir = path.join(
+      projectRoot,
+      resolvedOverridePaths.layouts || 'overrides/layouts',
+    );
+    for (const layout of REQUIRED_LAYOUTS) {
+      const present =
+        fs.existsSync(path.join(themeLayoutsDir, layout)) ||
+        fs.existsSync(path.join(overrideLayoutsDir, layout));
+      if (!present) {
+        throw new Error(
+          `Theme "${themeMetadata.name}" does not satisfy template contract v${THEMER_CONTRACT_VERSION}: ` +
+            `required layout "${layout}" was not found in the theme's layouts or in ${resolvedOverridePaths.layouts || 'overrides/layouts'}.`,
+        );
+      }
+    }
+  }
 
   // Inlined helper registration (was registerHelpers — trivial, 4 call sites)
   if (themeExports.filters) {
@@ -381,6 +459,31 @@ export async function eleventyPluginThemer(eleventyConfig, options = {}) {
         throw new Error(
           `Invalid theme feature in front matter (${where}):\n${formatZodIssues(result.error)}`,
         );
+      }
+    });
+  }
+
+  // Validate the resolved `site` global against the framework-owned site-data
+  // contract. Runs once (first template with data): hard-fails on a malformed
+  // shape (the site's own bug), and warns — without dropping — when the site
+  // asks for a capability the active theme doesn't declare. A preprocessor is
+  // used because it sees the fully-resolved data cascade (theme data + user
+  // `site.{mjs,js}`), which `eleventy.before` does not.
+  if (typeof eleventyConfig.addPreprocessor === 'function') {
+    let siteValidated = false;
+    eleventyConfig.addPreprocessor('themer-site-data', '*', (data) => {
+      if (siteValidated) return;
+      siteValidated = true;
+      const site = data?.site;
+      if (!site) return;
+      const result = siteDataSchema.safeParse(site);
+      if (!result.success) {
+        throw new Error(
+          `Invalid site data (content/_data/site.{mjs,js}):\n${formatZodIssues(result.error)}`,
+        );
+      }
+      for (const warning of siteCapabilityWarnings(site, themeMetadata.capabilities)) {
+        logger.warn(`[themer] ${warning}`);
       }
     });
   }

@@ -152,29 +152,9 @@ export default {
       .replace(/^-+|-+$/g, '');
   },
 
-  // Social network URL generator (data-driven via theme.config.socialPlatforms)
-  socialUrl: function (social, platformTemplates) {
-    // Custom URL takes precedence (with protocol validation)
-    if (social.url) return _safeUrl(social.url);
-
-    const platform = (social.platform || '').toLowerCase();
-    const account = social.account || '';
-
-    if (!platform || !account) return '#';
-
-    const template = platformTemplates?.[platform];
-    if (!template) return '#';
-
-    // Handle mastodon @user@instance.social format
-    if (platform === 'mastodon' && account.startsWith('@')) {
-      const parts = account.slice(1).split('@');
-      if (parts.length === 2) {
-        return _safeUrl(template.replace('{instance}', parts[1]).replace('{user}', parts[0]));
-      }
-    }
-
-    return _safeUrl(template.replace('{account}', account));
-  },
+  // Note: the `socialUrl` filter (account → profile-URL expansion) is provided
+  // by @eleventy-plugin-themer/core, which owns the canonical platform table.
+  // Templates pipe its result through `safeUrl` for protocol validation.
 
   // Inline brand SVG for a social platform (currentColor, accessible). Returns
   // '' when the platform has no known icon, so the template can fall back to text.

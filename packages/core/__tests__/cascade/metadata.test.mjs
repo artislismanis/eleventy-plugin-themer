@@ -126,4 +126,62 @@ describe('resolveThemeMetadata', () => {
       new RegExp(themeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   });
+
+  /** Mount package.json + theme.json fixtures on the fs mock. */
+  function mountTheme(themeJson, pkgJson = { name: 'theme', version: '1.0.0', description: 'd' }) {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockImplementation((p) => {
+      if (p === pkgJsonPath) return JSON.stringify(pkgJson);
+      if (p === themeJsonPath) return JSON.stringify(themeJson);
+      throw new Error(`Unexpected read: ${p}`);
+    });
+  }
+
+  describe('contract version handshake', () => {
+    it('accepts a supported contractVersion', () => {
+      mountTheme({ contractVersion: 1 });
+      expect(resolveThemeMetadata(projectRoot, themeName).contractVersion).toBe(1);
+    });
+
+    it('warns but does not throw when contractVersion is missing (pre-1.0 grace)', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mountTheme({});
+      expect(() => resolveThemeMetadata(projectRoot, themeName)).not.toThrow();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('does not declare a contractVersion'),
+      );
+    });
+
+    it('throws on an unsupported (too-new) contractVersion', () => {
+      mountTheme({ contractVersion: 999 });
+      expect(() => resolveThemeMetadata(projectRoot, themeName)).toThrow(/contract v999/);
+    });
+
+    it('throws on a non-integer contractVersion', () => {
+      mountTheme({ contractVersion: 1.5 });
+      expect(() => resolveThemeMetadata(projectRoot, themeName)).toThrow(
+        /non-integer contractVersion/,
+      );
+    });
+  });
+
+  describe('capabilities validation', () => {
+    it('accepts a well-formed capabilities block', () => {
+      mountTheme({
+        contractVersion: 1,
+        capabilities: {
+          social: { render: 'icons', fallback: 'text' },
+          analytics: ['googleAnalytics'],
+          comments: ['disqus'],
+          search: false,
+        },
+      });
+      expect(() => resolveThemeMetadata(projectRoot, themeName)).not.toThrow();
+    });
+
+    it('throws on a malformed capabilities block', () => {
+      mountTheme({ contractVersion: 1, capabilities: { analytics: 'not-an-array' } });
+      expect(() => resolveThemeMetadata(projectRoot, themeName)).toThrow(/Invalid "capabilities"/);
+    });
+  });
 });
