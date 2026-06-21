@@ -1,5 +1,11 @@
 # @eleventy-plugin-themer/theme-base
 
+## 0.4.2
+
+### Patch Changes
+
+- [#18](https://github.com/artislismanis/eleventy-plugin-themer/pull/18) [`8874244`](https://github.com/artislismanis/eleventy-plugin-themer/commit/8874244b2590a298f3dd8a1ee1740280566f65ae) Thanks [@artislismanis](https://github.com/artislismanis)! - Sync the dark-mode SCSS colour fallbacks with the theme's grayscale + plum palette in `theme.json` (they had drifted to the old blue values), and add a `--hero-gradient` custom property. Fallback-only change — themes that inject the `--theme-dark-*` tokens are unaffected.
+
 ## 0.4.0
 
 ### Minor Changes
