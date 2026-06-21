@@ -152,15 +152,16 @@ Extend a theme layout:
 
 ### Override Data
 
-Create `content/_data/site.js` to replace theme's site data:
+Create `content/_data/site.mjs` to replace theme's site data:
 
 ```js
-export default {
+export default defineSiteData({
   title: 'My Blog',
   url: 'https://myblog.com',
   language: 'en',
   author: { name: 'Your Name', email: 'you@example.com' },
-};
+  social: [{ platform: 'github', account: 'your-handle' }],
+});
 ```
 
 ### Override Static Assets
@@ -356,7 +357,7 @@ so the footer commit hash works without any setup on your side:
 
 It runs `git rev-parse HEAD` in your project at build time (falling back to
 `unknown`/`dev` outside a git repo). The footer shows `build.gitShaShort` when
-`footer.showGitSha` is enabled, linking to the commit if `footer.gitHubRepo` is set.
+`footer.showGitSha` is enabled, linking to the commit if `site.repository` is set.
 
 To override (e.g. inject a CI build number), provide your own
 `content/_data/build.js` — Eleventy's directory data takes precedence over the
@@ -364,24 +365,24 @@ theme's global data.
 
 ## Social links
 
-Configure social links via the `social` array in `theme.config.mjs`. Each entry needs a
-`platform` plus **either** an `account` (expanded through a URL template) **or** a full
-`url`:
+Configure social links via the `social` array in `content/_data/site.mjs` (social is
+site data, not theme config). Each entry needs a `platform` plus **either** an `account`
+(expanded through a URL template) **or** a full `url`:
 
 ```js
-export default {
+export default defineSiteData({
   social: [
     { platform: 'github', account: 'artislismanis' },
     { platform: 'mastodon', url: 'https://fosstodon.org/@you' },
     { platform: 'linkedin', account: 'your-handle', label: 'LinkedIn' },
   ],
-};
+});
 ```
 
-- `account` is expanded using the templates in `theme.json#config.socialPlatforms`
-  (`github`, `x`, `linkedin`, `youtube`, `instagram`, `facebook`, `tiktok`, `discord`,
-  `twitch`, `reddit`, `bluesky`, `mastodon`). Add your own templates there for other
-  networks. Mastodon also accepts an `@user@instance` account.
+- `account` is expanded by core's `socialUrl` filter using the framework's
+  `SOCIAL_PLATFORMS` table (`github`, `x`, `linkedin`, `youtube`, `instagram`, `facebook`,
+  `tiktok`, `discord`, `twitch`, `reddit`, `bluesky`, `mastodon`). Themes may extend it via
+  `theme.json#socialPlatforms`. Mastodon also accepts an `@user@instance` account.
 - `url` takes precedence over `account` and is validated by `safeUrl` (see Security
   helpers).
 - `label` is optional (used for the `aria-label`); it defaults to the capitalized

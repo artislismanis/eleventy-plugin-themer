@@ -4,6 +4,32 @@
   "description": "Schema for the theme.json file in the Eleventy Theme Framework.",
   "type": "object",
   "properties": {
+    "contractVersion": {
+      "description": "Template-contract version this theme targets (framework ↔ theme API). Core refuses themes outside its supported range. A theme MUST provide the required layouts (currently 'base.njk') for the contract it declares.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "capabilities": {
+      "description": "What this theme implements, so the framework can warn (not crash) when a site asks for something unsupported.",
+      "type": "object",
+      "properties": {
+        "social": {
+          "type": "object",
+          "properties": {
+            "render": { "type": "string" },
+            "fallback": { "type": "string" }
+          }
+        },
+        "analytics": { "type": "array", "items": { "type": "string" } },
+        "comments": { "type": "array", "items": { "type": "string" } },
+        "search": { "type": "boolean" }
+      }
+    },
+    "socialPlatforms": {
+      "description": "Optional theme extensions to the framework's canonical platform→URL templates. Themes should not redeclare the built-in platforms.",
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
     "layouts": {
       "description": "A list of layout files provided by the theme, used for aliasing.",
       "type": "array",

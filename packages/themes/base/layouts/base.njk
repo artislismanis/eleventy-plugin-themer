@@ -9,17 +9,17 @@
     <title>{{ (title or site.title) | escapeHtml }}</title>
     <meta name="description" content="{{ (description or site.description) | escapeAttr }}" />
 
-    {# Favicon from theme config #}
-    {% if theme and theme.logos and theme.logos.favicon %}
-      <link rel="icon" href="{{ theme.logos.favicon | safeUrl | escapeAttr }}" />
+    {# Favicon from site branding #}
+    {% if site and site.branding and site.branding.favicon %}
+      <link rel="icon" href="{{ site.branding.favicon | safeUrl | escapeAttr }}" />
     {% endif %}
 
-    {% if theme.features.rss %}
+    {% if site.features and site.features.rss %}
       {# Absolute URL: correct for feed autodiscovery and stops the build's
          bundler from inlining a small feed.xml as a data: URI. #}
       <link
         rel="alternate"
-        href="{{ (((site.url or '') | replace(r/\/$/, '')) ~ (theme.feedUrl | default('/feed.xml'))) | safeUrl | escapeAttr }}"
+        href="{{ (((site.url or '') | replace(r/\/$/, '')) ~ (site.feedUrl | default('/feed.xml'))) | safeUrl | escapeAttr }}"
         type="application/atom+xml"
         title="{{ site.title | escapeAttr }}"
       />
@@ -40,10 +40,10 @@
 
     <header>
       {# Logo or site title #}
-      {% if theme and theme.logos and theme.logos.default %}
+      {% if site and site.branding and site.branding.logo %}
         <a href="/" class="home-link">
           <img
-            src="{{ theme.logos.default | safeUrl | escapeAttr }}"
+            src="{{ site.branding.logo | safeUrl | escapeAttr }}"
             alt="{{ site.title | escapeAttr }}"
             class="site-logo"
           />

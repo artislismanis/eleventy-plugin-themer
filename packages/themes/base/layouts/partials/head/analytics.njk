@@ -2,12 +2,12 @@
   Analytics partial
   Supports Google Analytics and Plausible
 #}
-{% if theme and theme.analytics %}
+{% if site and site.analytics %}
   {# Google Analytics #}
-  {% if theme.analytics.googleAnalytics %}
+  {% if site.analytics.googleAnalytics %}
     <script
       async
-      src="https://www.googletagmanager.com/gtag/js?id={{ theme.analytics.googleAnalytics | escapeAttr }}"
+      src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.googleAnalytics | escapeAttr }}"
     ></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -15,15 +15,15 @@
         dataLayer.push(arguments);
       }
       gtag('js', new Date());
-      gtag('config', '{{ theme.analytics.googleAnalytics | escapeJsString }}');
+      gtag('config', '{{ site.analytics.googleAnalytics | escapeJsString }}');
     </script>
   {% endif %}
 
   {# Plausible Analytics #}
-  {% if theme.analytics.plausible %}
+  {% if site.analytics.plausible %}
     <script
       defer
-      data-domain="{{ theme.analytics.plausible | escapeAttr }}"
+      data-domain="{{ site.analytics.plausible | escapeAttr }}"
       src="https://plausible.io/js/script.js"
     ></script>
   {% endif %}

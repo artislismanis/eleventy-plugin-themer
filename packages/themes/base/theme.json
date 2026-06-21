@@ -1,6 +1,15 @@
 {
   "$schema": "../../core/theme.schema.json",
 
+  "contractVersion": 1,
+
+  "capabilities": {
+    "social": { "render": "icons", "fallback": "text" },
+    "analytics": ["googleAnalytics", "plausible"],
+    "comments": ["disqus"],
+    "search": false
+  },
+
   "themeFeatures": [
     {
       "name": "code-highlighting",
@@ -109,45 +118,6 @@
       "fontSize": "1rem",
       "lineHeight": "1.6"
     },
-    "logos": {
-      "default": "",
-      "dark": "",
-      "favicon": "/favicon.svg"
-    },
-    "feedUrl": "/feed.xml",
-    "social": [],
-    "socialPlatforms": {
-      "twitter": "https://twitter.com/{account}",
-      "x": "https://x.com/{account}",
-      "github": "https://github.com/{account}",
-      "linkedin": "https://linkedin.com/in/{account}",
-      "youtube": "https://youtube.com/@{account}",
-      "instagram": "https://instagram.com/{account}",
-      "facebook": "https://facebook.com/{account}",
-      "tiktok": "https://tiktok.com/@{account}",
-      "discord": "https://discord.gg/{account}",
-      "twitch": "https://twitch.tv/{account}",
-      "reddit": "https://reddit.com/user/{account}",
-      "bluesky": "https://bsky.app/profile/{account}",
-      "mastodon": "https://{instance}/@{user}"
-    },
-    "analytics": {
-      "googleAnalytics": "",
-      "plausible": ""
-    },
-    "features": {
-      "darkMode": true,
-      "search": false,
-      "rss": true,
-      "sitemap": true
-    },
-    "comments": {
-      "enabled": false,
-      "provider": "disqus",
-      "disqus": {
-        "shortname": ""
-      }
-    },
     "navigation": {
       "showHomeLink": true,
       "pagination": {
@@ -161,11 +131,9 @@
     },
     "footer": {
       "copyright": "{year} {site.title}",
-      "startYear": null,
       "alignment": "center",
       "showPoweredBy": true,
-      "showGitSha": true,
-      "gitHubRepo": ""
+      "showGitSha": true
     }
   }
 }

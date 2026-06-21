@@ -436,6 +436,13 @@ theme/
 {
   "name": "@eleventy-plugin-themer/theme-base",
   "version": "1.0.0",
+  "contractVersion": 1,
+  "capabilities": {
+    "social": { "render": "icons", "fallback": "text" },
+    "analytics": ["googleAnalytics", "plausible"],
+    "comments": ["disqus"],
+    "search": false
+  },
   "cascade": {
     "enabled": true,
     "defaultOverridePaths": {
@@ -456,6 +463,12 @@ theme/
 ```
 
 Themes are **data**, not logic. All framework logic lives in core.
+
+`contractVersion` declares the template contract the theme targets; core refuses
+themes outside its supported range (`THEMER_CONTRACT_VERSION`). Theme-agnostic
+*data* (social, analytics, comments, branding) lives in the site's
+`content/_data/site.mjs` under the framework site-data contract, **not** in
+`theme.json#config` — see `packages/core/docs/spec/template-contract.md`.
 
 ---
 

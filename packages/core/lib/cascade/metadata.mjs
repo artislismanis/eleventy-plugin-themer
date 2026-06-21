@@ -7,6 +7,10 @@
 import fs from 'fs';
 import path from 'path';
 
+import { THEMER_CONTRACT_VERSION, MIN_SUPPORTED_CONTRACT_VERSION } from '../defaults.mjs';
+import { capabilitiesSchema, formatZodIssues } from '../schemas.mjs';
+import { logger } from '../logger.mjs';
+
 import { getThemeRoot } from './paths.mjs';
 
 /**
@@ -59,8 +63,53 @@ export function resolveThemeMetadata(projectRoot, themeName) {
     description: pkgJson.description,
   };
 
+  assertContractVersion(metadata);
+  if (metadata.capabilities) {
+    const result = capabilitiesSchema.safeParse(metadata.capabilities);
+    if (!result.success) {
+      throw new Error(
+        `Invalid "capabilities" in theme.json for "${metadata.name}":\n${formatZodIssues(result.error)}`,
+      );
+    }
+  }
+
   _metadataCache.set(cacheKey, metadata);
   return metadata;
+}
+
+/**
+ * Enforce the framework ↔ theme template-contract version handshake.
+ *
+ * A theme declares the contract it targets via `theme.json#contractVersion`.
+ * Core refuses a theme outside the supported range. A missing version is a
+ * pre-1.0 grace: warn and assume the current contract.
+ *
+ * @param {Object} metadata - Merged theme metadata.
+ */
+function assertContractVersion(metadata) {
+  const declared = metadata.contractVersion;
+
+  if (declared === undefined) {
+    logger.warn(
+      `[themer] Theme "${metadata.name}" does not declare a contractVersion in theme.json; ` +
+        `assuming v${THEMER_CONTRACT_VERSION}. Add "contractVersion": ${THEMER_CONTRACT_VERSION} to silence this.`,
+    );
+    return;
+  }
+
+  if (!Number.isInteger(declared)) {
+    throw new Error(
+      `Theme "${metadata.name}" declares a non-integer contractVersion (${JSON.stringify(declared)}).`,
+    );
+  }
+
+  if (declared < MIN_SUPPORTED_CONTRACT_VERSION || declared > THEMER_CONTRACT_VERSION) {
+    throw new Error(
+      `Theme "${metadata.name}" targets template contract v${declared}, but this version of ` +
+        `@eleventy-plugin-themer/core supports v${MIN_SUPPORTED_CONTRACT_VERSION}–v${THEMER_CONTRACT_VERSION}. ` +
+        `Upgrade the theme or core so the versions are compatible.`,
+    );
+  }
 }
 
 /**

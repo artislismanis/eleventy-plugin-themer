@@ -4,9 +4,9 @@
 #}
 {% if theme and theme.footer and theme.footer.showGitSha and build and build.gitShaShort %}
   <span class="git-sha">
-    {% if theme.footer.gitHubRepo %}
+    {% if site.repository %}
       <a
-        href="{{ theme.footer.gitHubRepo | safeUrl | escapeAttr }}/commit/{{ build.gitSha | escapeAttr }}"
+        href="{{ site.repository | safeUrl | escapeAttr }}/commit/{{ build.gitSha | escapeAttr }}"
         rel="noopener noreferrer"
         target="_blank"
         title="View commit {{ build.gitShaShort | escapeAttr }} on GitHub"

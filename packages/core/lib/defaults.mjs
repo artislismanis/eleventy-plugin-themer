@@ -6,6 +6,42 @@
  */
 
 /**
+ * Template contract version implemented by this core.
+ *
+ * This is the version of the **framework ↔ theme template contract** (provided
+ * globals, required layouts, site-data shape, capability declaration) — distinct
+ * from the package's own semver. A theme declares which contract it targets via
+ * `theme.json#contractVersion`; core refuses to load a theme whose declared
+ * version falls outside [MIN_SUPPORTED_CONTRACT_VERSION, THEMER_CONTRACT_VERSION].
+ */
+export const THEMER_CONTRACT_VERSION = 1;
+export const MIN_SUPPORTED_CONTRACT_VERSION = 1;
+
+/**
+ * Canonical platform → profile-URL templates.
+ *
+ * Framework-owned because the mapping (e.g. `github` → `github.com/{account}`)
+ * is universal knowledge, not a per-theme decision. Themes may extend it via
+ * `theme.json#socialPlatforms`; they should not redeclare these. Consumed by the
+ * core `socialUrl` filter to expand `site.social[].account` into a full URL.
+ */
+export const SOCIAL_PLATFORMS = {
+  twitter: 'https://twitter.com/{account}',
+  x: 'https://x.com/{account}',
+  github: 'https://github.com/{account}',
+  linkedin: 'https://linkedin.com/in/{account}',
+  youtube: 'https://youtube.com/@{account}',
+  instagram: 'https://instagram.com/{account}',
+  facebook: 'https://facebook.com/{account}',
+  tiktok: 'https://tiktok.com/@{account}',
+  discord: 'https://discord.gg/{account}',
+  twitch: 'https://twitch.tv/{account}',
+  reddit: 'https://reddit.com/user/{account}',
+  bluesky: 'https://bsky.app/profile/{account}',
+  mastodon: 'https://{instance}/@{user}',
+};
+
+/**
  * Default override paths for user customization
  * These define where the framework looks for user overrides of theme resources
  */
