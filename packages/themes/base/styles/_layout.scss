@@ -11,6 +11,11 @@ main :first-child {
   margin-top: 0;
 }
 
+// Gentle spacing above the footer (no divider line).
+footer {
+  margin-top: 2rem;
+}
+
 // ============================================
 // Header & Navigation
 // ============================================
@@ -29,8 +34,9 @@ header {
   flex-grow: 1;
   font-size: 1em; /* 16px /16 */
   font-weight: 700;
+  text-decoration: none; // never underline; plum hover colour still applies
 
-  &:link:not(:hover) {
+  &:hover {
     text-decoration: none;
   }
 }
@@ -51,8 +57,12 @@ header {
   }
 }
 
-.nav a[href][aria-current='page'] {
+// Active page and hover both get the thick "highlighter" underline.
+.nav a[href][aria-current='page'],
+.nav a[href]:hover {
   text-decoration: underline;
+  text-decoration-thickness: 4px;
+  text-underline-offset: 3px;
 }
 
 // ============================================

@@ -6,27 +6,32 @@
 // ============================================
 
 .theme-toggle {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  background: none;
+  border: none;
+  border-radius: 0.25rem;
   cursor: pointer;
-  padding: 0.5rem;
-  color: var(--color-text);
+  padding: 0.25rem;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+  transition: color 0.2s ease;
 
   &:hover {
-    background-color: var(--color-surface);
-    border-color: var(--color-secondary);
+    color: var(--color-link-hover);
   }
 
   &:focus-visible {
     outline: 2px solid var(--color-secondary);
     outline-offset: 2px;
+  }
+
+  // display:block removes the inline-baseline descender gap that otherwise
+  // pushes the glyph upward (looking top-aligned) inside the button.
+  svg {
+    display: block;
+    width: 1rem;
+    height: 1rem;
   }
 
   // Show/hide icons based on current theme
@@ -104,6 +109,17 @@
     width: 24px;
     height: 24px;
   }
+
+  svg.social-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  // The RSS glyph reads a little heavier than the others, so size it down a touch.
+  &--rss svg.social-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
 }
 
 // Footer Menu
@@ -141,39 +157,47 @@
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   align-items: center;
+  justify-content: center; // default; overridden by alignment modifier
   font-size: 0.875rem;
   color: var(--color-text-muted);
 
-  p {
+  // Uniform typography across copyright, "built with", and the commit hash.
+  p,
+  .copyright,
+  .powered-by,
+  .git-sha {
     margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-style: normal;
   }
-}
 
-.copyright {
-  margin: 0;
-}
-
-.powered-by {
-  margin: 0;
-
+  // Footer links (built-with, commit hash) are underlined to read as inline
+  // links, sit in the muted text colour, and light up to the accent on hover.
   a {
-    color: var(--color-link);
-  }
-}
-
-.git-sha {
-  font-family: var(--font-family-monospace);
-  font-size: 0.75rem;
-
-  a {
-    color: var(--color-text-muted);
-    text-decoration: none;
+    color: inherit;
+    text-decoration: underline;
 
     &:hover {
       color: var(--color-link-hover);
-      text-decoration: underline;
     }
   }
+}
+
+// Footer-bottom horizontal alignment (config: footer.alignment; default centre)
+.footer-bottom--left {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.footer-bottom--center {
+  justify-content: center;
+  text-align: center;
+}
+
+.footer-bottom--right {
+  justify-content: flex-end;
+  text-align: right;
 }
 
 // Site Logo
@@ -302,11 +326,10 @@
     display: inline-block;
     color: var(--color-link);
     font-weight: 500;
-    text-decoration: none;
+    text-decoration: underline;
 
     &:hover {
       color: var(--color-link-hover);
-      text-decoration: underline;
     }
   }
 }
@@ -357,17 +380,18 @@
   }
 
   &__title {
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    margin: 0 0 1rem;
-    color: #fff;
-    text-shadow: 0 2px 4px rgb(0 0 0 / 30%);
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    line-height: 1.2;
+    margin: 0 0 0.75rem;
+    color: var(--color-text);
   }
 
   &__subtitle {
-    font-size: clamp(1.125rem, 2vw, 1.5rem);
-    margin: 0 0 2rem;
-    color: rgb(255 255 255 / 90%);
-    text-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    line-height: 1.4;
+    margin: 0 0 1.5rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
   }
 
   &__actions {
@@ -391,30 +415,55 @@
       color: #fff;
 
       &:hover {
-        background: var(--color-secondary);
+        filter: brightness(1.12);
         transform: translateY(-2px);
       }
     }
 
     &--secondary {
       background: transparent;
-      color: #fff;
-      border: 2px solid #fff;
+      color: var(--color-text);
+      border: 2px solid var(--color-text);
 
+      // Pronounced solid hover in both modes: fill with the text colour and flip
+      // the label to the background colour. This is mode-aware automatically
+      // (dark fill + light label in light mode, light fill + dark label in dark
+      // mode). Border stays var(--color-text) in both states (no flip).
       &:hover {
-        background: rgb(255 255 255 / 10%);
+        background: var(--color-text);
+        color: var(--color-background);
         transform: translateY(-2px);
       }
     }
   }
 }
 
-// Hero without background image - use gradient
+// Hero without background image - subtle gradient between the theme's own grays
+// so it blends with the page and adapts to light/dark. Text uses theme colors.
 .hero:not([style*='background-image']) {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: var(--hero-gradient);
 
   &::before {
     display: none;
+  }
+}
+
+// Image/overlay heroes: the dark overlay needs light text and a white outline
+// button for legibility over arbitrary photos.
+.hero--overlay {
+  .hero__title,
+  .hero__subtitle {
+    color: #fff;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+  }
+
+  .hero__button--secondary {
+    color: #fff;
+    border-color: #fff;
+
+    &:hover {
+      background: rgb(255 255 255 / 12%);
+    }
   }
 }
 

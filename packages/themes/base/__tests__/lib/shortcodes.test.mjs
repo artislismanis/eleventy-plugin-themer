@@ -53,6 +53,24 @@ describe('shortcodes.mjs', () => {
         expect(result).not.toContain('content-box__title');
       });
 
+      it('should add a grid-column span when span is provided', () => {
+        const result = pairedShortcodes.box('Content', { span: 2 });
+
+        expect(result).toContain('style="grid-column: span 2;"');
+      });
+
+      it('should not add a span style by default', () => {
+        const result = pairedShortcodes.box('Content');
+
+        expect(result).not.toContain('grid-column');
+      });
+
+      it('should coerce span to a number (no injection)', () => {
+        const result = pairedShortcodes.box('Content', { span: '2; color:red' });
+
+        expect(result).not.toContain('color:red');
+      });
+
       it('should include link when provided', () => {
         const result = pairedShortcodes.box('Content', {
           link: '/path',

@@ -14,12 +14,16 @@
       <link rel="icon" href="{{ theme.logos.favicon | safeUrl | escapeAttr }}" />
     {% endif %}
 
-    <link
-      rel="alternate"
-      href="/feed/feed.xml"
-      type="application/atom+xml"
-      title="{{ site.title | escapeAttr }}"
-    />
+    {% if theme.features.rss %}
+      {# Absolute URL: correct for feed autodiscovery and stops the build's
+         bundler from inlining a small feed.xml as a data: URI. #}
+      <link
+        rel="alternate"
+        href="{{ (((site.url or '') | replace(r/\/$/, '')) ~ (theme.feedUrl | default('/feed.xml'))) | safeUrl | escapeAttr }}"
+        type="application/atom+xml"
+        title="{{ site.title | escapeAttr }}"
+      />
+    {% endif %}
 
     <meta name="generator" content="{{ eleventy.generator | escapeAttr }}" />
 
@@ -88,7 +92,9 @@
         {% include "partials/social/links.njk" %}
       </div>
 
-      <div class="footer-bottom">
+      <div
+        class="footer-bottom footer-bottom--{{ theme.footer.alignment | default('center') | escapeAttr }}"
+      >
         {# Copyright #}
         {% include "partials/footer/copyright.njk" %}
 

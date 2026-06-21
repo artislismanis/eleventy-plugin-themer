@@ -38,15 +38,22 @@ export const pairedShortcodes = {
    * @param {string} options.title - Box heading
    * @param {string} options.link - URL for the call-to-action link
    * @param {string} options.linkText - Text for the link (default: "Learn More")
+   * @param {number} options.span - Number of grid columns to span (default: 1).
+   *   Combine unequal spans within a contentGrid for layouts like 2/3 + 1/3
+   *   (cols=3, spans 2 and 1) or 1/4 + 3/4 (cols=4, spans 1 and 3).
    * @param {string} options.className - Additional CSS class
    */
-  box: function (content, { title = '', link = '', linkText = 'Learn More', className = '' } = {}) {
+  box: function (
+    content,
+    { title = '', link = '', linkText = 'Learn More', span = 0, className = '' } = {},
+  ) {
     const safeLink = link ? escapeHtml(safeUrl(link)) : '';
     const linkHtml = safeLink
       ? `<a href="${safeLink}" class="content-box__link">${escapeHtml(linkText)}</a>`
       : '';
+    const spanStyle = Number(span) > 0 ? ` style="grid-column: span ${Number(span)};"` : '';
 
-    return `<div class="content-box ${escapeHtml(className)}">
+    return `<div class="content-box ${escapeHtml(className)}"${spanStyle}>
 	${title ? `<h3 class="content-box__title">${escapeHtml(title)}</h3>` : ''}
 	<div class="content-box__content">${content}</div>
 	${linkHtml}

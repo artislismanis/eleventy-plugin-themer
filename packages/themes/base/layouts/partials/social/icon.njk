@@ -1,12 +1,17 @@
 {#
   Social icon partial - override this to customize icons
 
+  Resolution order:
+  1. social.icon  -> custom image path (per-link override)
+  2. socialIcon   -> inline brand SVG from simple-icons (fill=currentColor)
+  3. text label   -> fallback when the platform has no known brand icon
+
   Available variables:
   - social.platform: Platform name (github, twitter, etc.)
   - social.icon: Optional custom icon path
   - social.label: Display label
 
-  Override this partial in your site to use custom SVG icons:
+  Override this partial in your site to use custom icons:
   overrides/layouts/partials/social/icon.njk
 #}
 {% if social.icon %}
@@ -19,8 +24,14 @@
     height="24"
   />
 {% else %}
-  {# Default: platform name as text with CSS class for styling #}
-  <span class="social-icon social-icon--{{ social.platform | escapeAttr }}">
-    {{ social | socialLabel | escapeHtml }}
-  </span>
+  {%- set iconSvg = social.platform | socialIcon -%}
+  {% if iconSvg %}
+    {# Inline brand SVG (trusted markup generated from simple-icons path data) #}
+    {{ iconSvg | safe }}
+  {% else %}
+    {# Fallback: platform name as text with CSS class for styling #}
+    <span class="social-icon social-icon--{{ social.platform | escapeAttr }}">
+      {{ social | socialLabel | escapeHtml }}
+    </span>
+  {% endif %}
 {% endif %}

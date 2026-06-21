@@ -35,6 +35,11 @@
   --code-scrollbar-height: 8px;
   --code-scrollbar-thumb-bg: rgb(255 255 255 / 20%);
   --code-scrollbar-thumb-hover-bg: rgb(255 255 255 / 30%);
+
+  // Diff line backgrounds (whole added/removed line, not just the +/- sign).
+  // Translucent so they read on the dark PrismJS code background.
+  --code-diff-inserted-bg: rgb(46 160 67 / 18%);
+  --code-diff-deleted-bg: rgb(248 81 73 / 18%);
 }
 
 // Enhancements on top of PrismJS base
@@ -58,6 +63,23 @@ pre[class*='language-'] {
     &:hover {
       background: var(--code-scrollbar-thumb-hover-bg);
     }
+  }
+}
+
+// Diff highlighting: fill the whole added/removed line, not just the +/- sign.
+// The Eleventy syntax highlighter emits `.token.inserted` / `.token.deleted`
+// line spans WITHOUT prismjs' `diff-highlight` class (which its bundled CSS
+// requires), so we target the line spans directly. The +/- glyph lives in a
+// child `.token.prefix`, which is left untouched.
+pre[class*='language-diff'] {
+  .token.inserted:not(.prefix) {
+    display: block;
+    background-color: var(--code-diff-inserted-bg);
+  }
+
+  .token.deleted:not(.prefix) {
+    display: block;
+    background-color: var(--code-diff-deleted-bg);
   }
 }
 

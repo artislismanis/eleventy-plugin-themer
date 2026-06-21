@@ -43,7 +43,10 @@ li {
   line-height: 1.5;
 }
 
-a[href] {
+// Wrapped in :where() so these base link colors have zero specificity and any
+// component (nav, buttons, breadcrumb, etc.) can override with a plain class
+// without fighting the a[href] attribute selector.
+:where(a[href]) {
   color: var(--color-link);
 
   &:visited {
@@ -54,6 +57,20 @@ a[href] {
   &:active {
     color: var(--color-link-hover);
   }
+}
+
+// External links (marked by the externalLinks transform) get the Lucide
+// "external-link" glyph, drawn with a mask so it inherits the link's
+// currentColor. Decorative, so it's empty content (no text for AT).
+.external-link::after {
+  content: '';
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.2em;
+  vertical-align: 0.03em; // baseline-relative; raise toward +0.1em (low) / lower toward -0.1em (high)
+  background-color: currentcolor;
+  mask: var(--external-link-icon) no-repeat center / contain; // build autoprefixes -webkit-
 }
 
 pre,
@@ -188,15 +205,16 @@ h6 + .header-anchor {
   margin-top: 0.15em; // Relative to h5/h6 size
 }
 
-.header-anchor:hover {
+.header-anchor:hover,
+.header-anchor:focus-visible {
   opacity: 1;
-  color: #06c; // Change this to your preferred highlight color
+  color: var(--color-link-hover);
   text-decoration: none;
 }
 
-.header-anchor:focus {
-  opacity: 1;
-  color: #06c;
-  outline: 2px solid #06c;
+// Outline only for keyboard focus (:focus-visible) so clicking the anchor with a
+// mouse doesn't flash a box around it, while keyboard users keep a visible ring.
+.header-anchor:focus-visible {
+  outline: 2px solid var(--color-link-hover);
   outline-offset: 2px;
 }
