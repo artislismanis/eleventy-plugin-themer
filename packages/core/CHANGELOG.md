@@ -1,5 +1,13 @@
 # @eleventy-plugin-themer/core
 
+## 0.4.3
+
+### Patch Changes
+
+- [#21](https://github.com/artislismanis/eleventy-plugin-themer/pull/21) [`c7e8cdc`](https://github.com/artislismanis/eleventy-plugin-themer/commit/c7e8cdc9c3b43938900bbd2c7e1e26cf44403a92) Thanks [@artislismanis](https://github.com/artislismanis)! - build-vite: default Beasties `criticalCSS` to `pruneSource: false`. Beasties under-detects some rules (`:root` custom-property bridges, id/element/`:has()` selectors) and would delete them from the linked stylesheet without inlining them, silently dropping styles in production (e.g. a customised light palette reverting to theme defaults). Consumers can still opt back in via `optimizations.criticalCSS.pruneSource`.
+
+  core: add first-class `wordmark` (`{ text, accent? }`) and `tagline` (`boolean | string`) fields to `siteBrandingSchema`, so themes can render a styled text logo without relying on the non-strict passthrough.
+
 ## 0.4.0
 
 ### Minor Changes
