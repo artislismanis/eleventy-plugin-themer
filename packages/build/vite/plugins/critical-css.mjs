@@ -7,11 +7,14 @@ import { GLOB_PATTERNS } from '../utils/constants.mjs';
 
 export async function generateCriticalCSS(outputDir, options = {}) {
   // beasties is the maintained drop-in fork of the deprecated `critters`.
+  // pruneSource stays off: Beasties under-detects some rules (`:root` custom-prop
+  // bridges, id/element/`:has()` selectors) and would delete them from the linked
+  // stylesheet without inlining them, silently dropping styles in production.
   const beasties = new Beasties({
     path: outputDir,
     publicPath: '/',
     inlineFonts: true,
-    pruneSource: true,
+    pruneSource: false,
     mergeStylesheets: true,
     compress: true,
     logLevel: 'warn',

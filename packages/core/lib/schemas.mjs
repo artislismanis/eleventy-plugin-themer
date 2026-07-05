@@ -50,6 +50,15 @@ export const siteBrandingSchema = z
     logo: z.string().optional(),
     logoDark: z.string().optional(),
     favicon: z.string().optional(),
+    // Text wordmark fallback when no `logo`; `accent` is the substring to highlight.
+    wordmark: z
+      .object({
+        text: z.string(),
+        accent: z.string().optional(),
+      })
+      .optional(),
+    // `true` → use site.description; or a literal string.
+    tagline: z.union([z.boolean(), z.string()]).optional(),
   })
   .optional();
 
