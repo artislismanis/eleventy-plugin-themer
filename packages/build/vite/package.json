@@ -1,6 +1,6 @@
 {
   "name": "@eleventy-plugin-themer/build-vite",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "description": "Opinionated Vite integration with production optimizations for Eleventy themes",
   "type": "module",
   "main": "index.mjs",
@@ -46,7 +46,7 @@
   },
   "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/build/vite#readme",
   "dependencies": {
-    "@eleventy-plugin-themer/core": "^0.4.0",
+    "@eleventy-plugin-themer/core": "^0.4.3",
     "beasties": "^0.4.2",
     "glob": "^13.0.0",
     "purgecss": "^6.0.0",
