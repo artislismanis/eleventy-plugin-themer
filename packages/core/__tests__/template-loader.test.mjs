@@ -24,7 +24,13 @@ vi.mock('nunjucks', () => {
   return {
     default: {
       FileSystemLoader: MockFileSystemLoader,
-      Environment: vi.fn(() => mockEnv),
+      // Must be a plain function, not an arrow: the code under test calls
+      // `new Environment(...)`, and vitest 4 no longer makes an arrow-function
+      // mock impl constructible. Returning an object from a constructor
+      // overrides `this`, so callers still get mockEnv.
+      Environment: vi.fn(function () {
+        return mockEnv;
+      }),
     },
   };
 });
