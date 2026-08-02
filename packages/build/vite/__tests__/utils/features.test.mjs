@@ -84,8 +84,8 @@ describe('build-vite/utils/features.mjs', () => {
 
       const result = getFeatureEntries('/project', mockThemeMetadata);
 
-      expect(result['/code-highlighting.js']).toBe('/features/code.js');
-      expect(result['/gallery.js']).toBe('/features/gallery.js');
+      expect(result['code-highlighting']).toBe('/features/code.js');
+      expect(result['gallery']).toBe('/features/gallery.js');
     });
 
     it('should use custom asset entry from theme metadata', () => {
@@ -141,7 +141,7 @@ describe('build-vite/utils/features.mjs', () => {
       });
 
       expect(getAvailableFeatures).not.toHaveBeenCalled();
-      expect(result['/existing.js']).toBe('/x/existing.js');
+      expect(result['existing']).toBe('/x/existing.js');
     });
 
     it('should log feature discovery when features exist', () => {

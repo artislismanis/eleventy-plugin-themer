@@ -82,8 +82,7 @@ export function getFeatureEntries(projectRoot, themeMetadata, opts = {}) {
     discoveredFeatures || getAvailableFeatures(projectRoot, themeMetadata, resolvedOverridePaths);
 
   features.forEach((feature) => {
-    const entryKey = `/${feature.name}.js`;
-    entries[entryKey] = feature.path;
+    entries[feature.name] = feature.path;
   });
 
   if (features.size > 0) {
