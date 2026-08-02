@@ -1,0 +1,59 @@
+version: 2
+
+updates:
+  # npm workspaces resolve from the root lockfile, so `directory: /` covers
+  # packages/core, packages/build/*, and packages/themes/*.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # Runtime deps of the published packages — these reach consumers, so
+      # they stay out of the big dev-toolchain PR.
+      runtime:
+        patterns:
+          - zod
+          - luxon
+          - markdown-it
+          - markdown-it-anchor
+          - simple-icons
+          - beasties
+          - purgecss
+          - glob
+          - html-minifier-terser
+          - node-html-parser
+        update-types: [minor, patch]
+      dev-toolchain:
+        dependency-type: development
+        update-types: [minor, patch]
+      remaining-minor-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+    # Majors stay ungrouped so each arrives as its own reviewable PR.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule:
+      interval: monthly
