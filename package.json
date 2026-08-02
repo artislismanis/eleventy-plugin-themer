@@ -49,6 +49,7 @@
     "url": "https://github.com/artislismanis/eleventy-plugin-themer/issues"
   },
   "devDependencies": {
+    "@11ty/eleventy-plugin-vite": "^8.0.0",
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.1",
     "@eslint/js": "^9.36.0",
@@ -67,6 +68,7 @@
     "sass-embedded": "^1.100.0",
     "stylelint": "^17.14.1",
     "stylelint-config-standard-scss": "^17.0.0",
+    "vite": "^8.2.0",
     "vitest": "^4.1.10"
   }
 }
