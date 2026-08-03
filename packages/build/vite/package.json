@@ -50,7 +50,7 @@
     "@eleventy-plugin-themer/core": "^0.4.3",
     "beasties": "^0.4.3",
     "glob": "^13.0.6",
-    "purgecss": "^6.0.0",
+    "purgecss": "^8.0.0",
     "html-minifier-terser": "^7.2.0",
     "node-html-parser": "^7.0.1"
   },
