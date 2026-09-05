@@ -95,7 +95,9 @@ async function loadUserConfig(projectRoot, resolvedOverridePaths = {}) {
         const mod = await import(configPath);
         return mod.default || mod;
       } catch (error) {
-        throw new Error(`Failed to load user theme config at ${configPath}: ${error.message}`);
+        throw new Error(`Failed to load user theme config at ${configPath}: ${error.message}`, {
+          cause: error,
+        });
       }
     }
   }
