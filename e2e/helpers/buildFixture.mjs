@@ -62,6 +62,6 @@ export async function buildFixture(name, { env = {}, expectThrow = false, args =
     if (expectThrow) {
       return { ok: false, output, stdout: err.stdout || '', stderr: err.stderr || '' };
     }
-    throw new Error(`Build of "${name}" failed:\n${output}`);
+    throw new Error(`Build of "${name}" failed:\n${output}`, { cause: err });
   }
 }

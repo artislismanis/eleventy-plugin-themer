@@ -1,6 +1,6 @@
 import js from '@eslint/js';
 import globals from 'globals';
-import importPlugin from 'eslint-plugin-import';
+import { flatConfigs as importXConfigs } from 'eslint-plugin-import-x';
 import promisePlugin from 'eslint-plugin-promise';
 import prettierConfig from 'eslint-config-prettier';
 
@@ -8,7 +8,7 @@ export default [
   { ignores: ['**/node_modules/**', '**/dist/**', '**/_site/**', '**/coverage/**', '**/*.min.js'] },
 
   js.configs.recommended,
-  importPlugin.flatConfigs.recommended,
+  importXConfigs.recommended,
   promisePlugin.configs['flat/recommended'],
 
   // All JS files: shared settings and rules
@@ -20,7 +20,9 @@ export default [
       globals: { ...globals.es2022 },
     },
     rules: {
-      'import/order': ['error', { 'newlines-between': 'always' }],
+      'import-x/order': ['error', { 'newlines-between': 'always' }],
+      // simple-icons is indexed by computed slug at module load in the base theme.
+      'import-x/namespace': ['error', { allowComputed: true }],
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'prefer-const': 'error',
       'no-var': 'error',
@@ -39,7 +41,7 @@ export default [
   {
     files: ['**/scripts/**/*.js', '**/features/**/*.js'],
     languageOptions: { globals: { ...globals.browser } },
-    rules: { 'import/no-unresolved': ['error', { ignore: ['^virtual:'] }] },
+    rules: { 'import-x/no-unresolved': ['error', { ignore: ['^virtual:'] }] },
   },
 
   // Test files: add Vitest globals
@@ -51,7 +53,7 @@ export default [
   // Vitest config files: ignore unresolved vitest/config
   {
     files: ['**/vitest.config.mjs', '**/vitest.config.base.mjs', '**/vitest.config.browser.mjs'],
-    rules: { 'import/no-unresolved': ['error', { ignore: ['^vitest'] }] },
+    rules: { 'import-x/no-unresolved': ['error', { ignore: ['^vitest'] }] },
   },
 
   // E2E browser tests: code in page.evaluate/waitForFunction runs in the browser
@@ -64,7 +66,10 @@ export default [
   {
     files: ['packages/build/vite/**/*.mjs'],
     rules: {
-      'import/no-unresolved': ['error', { ignore: ['^@eleventy-plugin-themer/core/', '^vitest'] }],
+      'import-x/no-unresolved': [
+        'error',
+        { ignore: ['^@eleventy-plugin-themer/core/', '^vitest'] },
+      ],
     },
   },
 
