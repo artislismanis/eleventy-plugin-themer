@@ -1,5 +1,12 @@
 # @eleventy-plugin-themer/theme-base
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [[`dbcdd3a`](https://github.com/artislismanis/eleventy-plugin-themer/commit/dbcdd3ab6baf4a652ba53d4fe3e21563d165a0e8)]:
+  - @eleventy-plugin-themer/core@0.5.1
+
 ## 0.4.2
 
 ### Patch Changes
