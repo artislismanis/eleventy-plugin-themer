@@ -1,5 +1,11 @@
 # @eleventy-plugin-themer/core
 
+## 0.5.1
+
+### Patch Changes
+
+- [#62](https://github.com/artislismanis/eleventy-plugin-themer/pull/62) [`dbcdd3a`](https://github.com/artislismanis/eleventy-plugin-themer/commit/dbcdd3ab6baf4a652ba53d4fe3e21563d165a0e8) Thanks [@artislismanis](https://github.com/artislismanis)! - Attach the original error as `cause` when a user theme config fails to load, so the underlying stack survives instead of being flattened into the message string.
+
 ## 0.4.3
 
 ### Patch Changes

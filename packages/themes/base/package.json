@@ -1,6 +1,6 @@
 {
   "name": "@eleventy-plugin-themer/theme-base",
-  "version": "0.4.2",
+  "version": "0.5.1",
   "description": "A minimal convention-based Eleventy theme with self-describing metadata and extensible features",
   "type": "module",
   "main": "lib/index.mjs",
@@ -52,7 +52,7 @@
   },
   "homepage": "https://github.com/artislismanis/eleventy-plugin-themer/tree/main/packages/themes/base#readme",
   "dependencies": {
-    "@eleventy-plugin-themer/core": "^0.4.0",
+    "@eleventy-plugin-themer/core": "^0.5.1",
     "luxon": "^3.7.0",
     "markdown-it": "^15.0.1",
     "markdown-it-anchor": "^9.2.1",
