@@ -31,13 +31,20 @@ updates:
           - html-minifier-terser
           - node-html-parser
         update-types: [minor, patch]
+      # vitest and @vitest/* pin each other to an exact version, so a major
+      # split across two PRs leaves each one failing npm ci on peer resolution.
+      # No update-types filter: this has to cover majors too.
+      vitest:
+        patterns:
+          - vitest
+          - '@vitest/*'
       dev-toolchain:
         dependency-type: development
         update-types: [minor, patch]
       remaining-minor-patch:
         patterns: ['*']
         update-types: [minor, patch]
-    # Majors stay ungrouped so each arrives as its own reviewable PR.
+    # Majors otherwise stay ungrouped so each arrives as its own reviewable PR.
 
   - package-ecosystem: github-actions
     directory: /
