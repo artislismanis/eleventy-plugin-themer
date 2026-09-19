@@ -32,9 +32,14 @@ jobs:
       # create and approve pull requests" off, and PRs opened with GITHUB_TOKEN
       # never trigger CI, so the version PR would merge unchecked.
       #
+      # npm auth is Trusted Publishing (OIDC): the `id-token: write` permission
+      # above lets npm verify this workflow's identity against the trusted
+      # publisher registered on each package, so there is no NPM_TOKEN to leak.
+      # Requires npm >= 11.5.1; .nvmrc pins Node 24, which ships npm 11.19.
+      #
       # SHA-pinned: `changesets/action@v1` resolves to a mutable *branch*
       # (refs/heads/v1), not a tag — anything pushed there would run with
-      # NPM_TOKEN and contents:write. Dependabot maintains this pin.
+      # RELEASE_TOKEN and contents:write. Dependabot maintains this pin.
       - name: Create Release PR or Publish
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
@@ -44,5 +49,3 @@ jobs:
           commit: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
