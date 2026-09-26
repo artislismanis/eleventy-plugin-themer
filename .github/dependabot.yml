@@ -64,8 +64,13 @@ updates:
     commit-message:
       prefix: ci
     groups:
+      # Minors only, so an action major arrives as its own PR. release.yml runs
+      # on push to main and never on a PR, so a grouped major merges green and
+      # then fails on main — changesets/action v2 renamed every input this way
+      # (#80, fixed in #84).
       actions:
         patterns: ['*']
+        update-types: [minor, patch]
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-patch']
