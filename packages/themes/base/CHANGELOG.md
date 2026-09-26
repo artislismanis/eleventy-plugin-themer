@@ -1,5 +1,11 @@
 # @eleventy-plugin-themer/theme-base
 
+## 0.5.2
+
+### Patch Changes
+
+- [#86](https://github.com/artislismanis/eleventy-plugin-themer/pull/86) [`c8244ca`](https://github.com/artislismanis/eleventy-plugin-themer/commit/c8244ca20c83b5339414359efbe8117309dba380) Thanks [@artislismanis](https://github.com/artislismanis)! - Bump simple-icons to ^16.32.0
+
 ## 0.5.1
 
 ### Patch Changes
