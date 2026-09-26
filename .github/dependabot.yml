@@ -73,4 +73,9 @@ updates:
   - package-ecosystem: devcontainers
     directory: /
     schedule:
-      interval: monthly
+      interval: cron
+      cronjob: '0 6 1,15 * *'
+      timezone: Europe/London
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-patch']
